@@ -10,7 +10,6 @@ A Streamlit application for summarizing legal documents using AI. The applicatio
 - AI-powered document summarization
 - Paragraph-by-paragraph summaries
 - Interactive chat with document content
-- Responsive design
 
 ## Prerequisites
 
@@ -22,7 +21,7 @@ A Streamlit application for summarizing legal documents using AI. The applicatio
 
 1. Clone the repository:
 ```bash
-git clone <repository-url>
+git clone https://github.com/nttrung2406/Legal_doc_summary.git
 cd legal-doc-summary
 ```
 
