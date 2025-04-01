@@ -12,18 +12,15 @@ from dotenv import load_dotenv
 import time
 from database import check_api_usage, update_api_usage
 
-# Load environment variables
 load_dotenv()
 
-# Download required NLTK data
 nltk.download('punkt')
 
-# Initialize Gemini
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 genai.configure(api_key=GEMINI_API_KEY)
-model = genai.GenerativeModel('gemini-pro')
+model = genai.GenerativeModel('gemini-1.5-flash')
 
-# Initialize MiniLM model for embeddings
+
 tokenizer = AutoTokenizer.from_pretrained('sentence-transformers/all-MiniLM-L6-v2')
 embedding_model = AutoModel.from_pretrained('sentence-transformers/all-MiniLM-L6-v2')
 

@@ -1,21 +1,21 @@
-# Legal Document Summarizer
+# ReadLaw - Legal Document Summarizer
 
-A Streamlit application for summarizing legal documents using AI. The application allows users to upload PDF documents, view them, and get AI-generated summaries and insights.
+A web application that helps users analyze and understand legal documents using AI-powered summarization and chat capabilities.
 
 ## Features
 
 - User authentication (signup/login)
-- PDF document upload and storage
-- Document viewing with original text display
+- PDF document upload and viewing
 - AI-powered document summarization
 - Paragraph-by-paragraph summaries
 - Interactive chat with document content
 
 ## Prerequisites
 
-- Python 3.8 or higher
-- MongoDB Atlas account (for database)
-- Google AI Studio API key (for Gemini)
+- Python 3.8+
+- Node.js 16+
+- MongoDB
+- Google Gemini API key
 
 ## Setup
 
@@ -25,84 +25,60 @@ git clone https://github.com/nttrung2406/Legal_doc_summary.git
 cd legal-doc-summary
 ```
 
-2. Install backend dependencies:
+2. Set up the backend:
 ```bash
 cd backend
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-3. Install frontend dependencies:
-```bash
-cd ../frontend
-pip install -r requirements.txt
+3. Create a `.env` file in the backend directory with the following variables:
+```
+MONGO_URI=your_mongodb_uri
+SECRET_KEY=your_secret_key
+ALGORITHM=HS256
+ACCESS_TOKEN_EXPIRE_MINUTES=1440
+MAX_REQUESTS_PER_DAY=50
+REQUEST_COOLDOWN=1
+GEMINI_API_KEY=your_gemini_api_key
 ```
 
-4. Create an `uploads` directory in the backend folder:
+4. Set up the frontend:
 ```bash
-cd ../backend
-mkdir uploads
+cd frontend-react
+npm install
 ```
 
-## Running the Application
-
-### Option 1: Using Start Scripts (Recommended)
-
-#### For Windows:
-```bash
-start.bat
-```
-
-#### For Linux/Mac:
-```bash
-chmod +x start.sh
-./start.sh
-```
-
-This will start both the backend and frontend servers simultaneously with auto-reload enabled.
-
-### Option 2: Manual Start
-
-1. Start the backend server:
+5. Start the backend server:
 ```bash
 cd backend
-uvicorn main:app --reload --port 8000
+uvicorn main:app --reload
 ```
 
-2. In a new terminal, start the Streamlit frontend:
+6. Start the frontend development server:
 ```bash
-cd frontend
-streamlit run app.py --server.port 8501
+cd frontend-react
+npm run dev
 ```
 
-3. Open your browser and navigate to `http://localhost:8501`
+The application will be available at:
+- Frontend: http://localhost:5173
+- Backend API: http://localhost:8000
+
+## API Documentation
+
+Once the backend server is running, you can access the API documentation at:
+- Swagger UI: http://localhost:8000/docs
+- ReDoc: http://localhost:8000/redoc
 
 ## Usage
 
-1. Sign up for a new account or log in with existing credentials
-2. Upload PDF documents using the file uploader
-3. View your uploaded documents in the grid view
-4. Click on a document to view it and access its features:
-   - Overall summary
-   - Paragraph-by-paragraph summaries
-   - Interactive chat with the document
-
-## Architecture
-
-- Backend: FastAPI with MongoDB database
-- Frontend: Streamlit
-- AI Models:
-  - MiniLM for text embeddings
-  - Google Gemini for text generation
-- Document Processing:
-  - PyMuPDF for PDF text extraction
-  - NLTK for text chunking
-
-## Security
-
-- JWT-based authentication
-- Password hashing
-- Secure file handling
-- MongoDB Atlas security features
+1. Create an account or log in
+2. Upload a PDF document
+3. View the document and its AI-generated summary
+4. Get paragraph-by-paragraph summaries
+5. Chat with the document to ask specific questions
 
 ## Contributing
 
