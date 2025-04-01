@@ -8,24 +8,7 @@ A web application that helps users analyze and understand legal documents using 
 - PDF document upload and viewing
 - AI-powered document summarization
 - Paragraph-by-paragraph summaries
-- Interactive chat with documents
-- Modern, responsive UI
-
-## Tech Stack
-
-### Backend
-- FastAPI (Python)
-- MongoDB
-- PyMuPDF for PDF processing
-- Google's Gemini AI for text generation
-- JWT for authentication
-
-### Frontend
-- React
-- Material-UI for components
-- React Router for navigation
-- React-PDF for PDF viewing
-- Axios for API calls
+- Interactive chat with document content
 
 ## Prerequisites
 
@@ -38,8 +21,8 @@ A web application that helps users analyze and understand legal documents using 
 
 1. Clone the repository:
 ```bash
-git clone <repository-url>
-cd readlaw
+git clone https://github.com/nttrung2406/Legal_doc_summary.git
+cd legal-doc-summary
 ```
 
 2. Set up the backend:
@@ -99,12 +82,4 @@ Once the backend server is running, you can access the API documentation at:
 
 ## Contributing
 
-1. Fork the repository
-2. Create a feature branch
-3. Commit your changes
-4. Push to the branch
-5. Create a Pull Request
-
-## License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
+Feel free to submit issues and enhancement requests!
