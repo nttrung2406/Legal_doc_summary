@@ -63,7 +63,7 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
     if not success:
         raise HTTPException(status_code=401, detail=result)
     
-    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token_expires = timedelta(minutes=int(ACCESS_TOKEN_EXPIRE_MINUTES))
     access_token = create_access_token(
         data={"sub": form_data.username}, expires_delta=access_token_expires
     )

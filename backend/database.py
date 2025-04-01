@@ -28,7 +28,7 @@ REQUEST_COOLDOWN = os.getenv("REQUEST_COOLDOWN")
 
 def check_api_usage(user_id: str) -> tuple[bool, str]:
     """Check if user has exceeded daily API limit or needs to wait for cooldown."""
-    today = datetime.utcnow().date()
+    today = datetime.now().date()
     
     usage = api_usage_collection.find_one({
         "user_id": user_id,
@@ -57,7 +57,7 @@ def check_api_usage(user_id: str) -> tuple[bool, str]:
 
 def update_api_usage(user_id: str):
     """Update API usage count and last request time."""
-    today = datetime.utcnow().date()
+    today = datetime.now().date()
     
     api_usage_collection.update_one(
         {
@@ -79,7 +79,7 @@ def create_user(username: str, email: str, password: str):
         "username": username,
         "email": email,
         "hashed_password": hashed_password,
-        "created_at": datetime.utcnow()
+        "created_at": datetime.now()
     }
     users_collection.insert_one(user)
     return True, "User created successfully"
@@ -87,19 +87,25 @@ def create_user(username: str, email: str, password: str):
 def verify_user(username: str, password: str):
     user = users_collection.find_one({"username": username})
     if not user:
+        print(f"User not found: {username}")
         return False, "User not found"
     
+    print(f"Verifying password for user: {username}")
+    print(f"Stored hashed password: {user['hashed_password']}")
+    
     if not pwd_context.verify(password, user["hashed_password"]):
+        print("Password verification failed")
         return False, "Incorrect password"
     
+    print("Password verification succeeded")
     return True, user
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     to_encode = data.copy()
     if expires_delta:
-        expire = datetime.utcnow() + expires_delta
+        expire = datetime.now() + expires_delta
     else:
-        expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+        expire = datetime.now() + timedelta(minutes=int(ACCESS_TOKEN_EXPIRE_MINUTES))
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
