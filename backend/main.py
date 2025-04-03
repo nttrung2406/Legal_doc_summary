@@ -1,6 +1,7 @@
 from fastapi import FastAPI, UploadFile, File, HTTPException, Depends
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from datetime import timedelta
 import shutil
 import os
@@ -21,7 +22,6 @@ from document_processor import (
 
 app = FastAPI()
 
-# CORS middleware
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -94,12 +94,17 @@ async def upload_file(
         )
         
         if not success:
+            # If document saving fails, clean up the uploaded file
+            os.remove(file_path)
             raise HTTPException(status_code=500, detail=message)
         
         return {"message": "File processed successfully"}
     
-    finally:
-        os.remove(file_path)
+    except Exception as e:
+        # If any error occurs during processing, clean up the uploaded file
+        if os.path.exists(file_path):
+            os.remove(file_path)
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/documents")
 async def get_documents(current_user: dict = Depends(get_current_user)):
@@ -156,4 +161,27 @@ async def chat_with_document(
     success, result = generate_chat_response(query, similar_chunks, current_user["_id"])
     if not success:
         raise HTTPException(status_code=429, detail=result)
-    return {"response": result} 
+    return {"response": result}
+
+@app.get("/serve-pdf/{filename}")
+async def serve_pdf(filename: str, current_user: dict = Depends(get_current_user)):
+    document = get_document_by_filename(filename)
+    if not document or document["user_id"] != current_user["_id"]:
+        raise HTTPException(status_code=404, detail="Document not found")
+    
+    file_path = os.path.join(UPLOAD_DIR, filename)
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="PDF file not found")
+    
+    try:
+        return FileResponse(
+            file_path,
+            media_type="application/pdf",
+            headers={
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Methods": "GET",
+                "Access-Control-Allow-Headers": "*"
+            }
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error serving PDF: {str(e)}") 

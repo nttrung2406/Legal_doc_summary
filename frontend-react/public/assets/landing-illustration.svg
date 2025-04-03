@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="600" height="400" viewBox="0 0 600 400" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Document background -->
+  <rect x="100" y="50" width="400" height="300" rx="10" fill="white" fill-opacity="0.2"/>
+  
+  <!-- Document lines -->
+  <rect x="150" y="100" width="300" height="4" rx="2" fill="white" fill-opacity="0.5"/>
+  <rect x="150" y="120" width="250" height="4" rx="2" fill="white" fill-opacity="0.5"/>
+  <rect x="150" y="140" width="300" height="4" rx="2" fill="white" fill-opacity="0.5"/>
+  <rect x="150" y="160" width="200" height="4" rx="2" fill="white" fill-opacity="0.5"/>
+  <rect x="150" y="180" width="300" height="4" rx="2" fill="white" fill-opacity="0.5"/>
+  <rect x="150" y="200" width="250" height="4" rx="2" fill="white" fill-opacity="0.5"/>
+  
+  <!-- AI icon -->
+  <circle cx="300" cy="250" r="40" fill="white" fill-opacity="0.2"/>
+  <path d="M300 220L320 260H280L300 220Z" fill="white"/>
+  
+  <!-- Summary lines -->
+  <rect x="150" y="300" width="300" height="4" rx="2" fill="white" fill-opacity="0.7"/>
+  <rect x="150" y="320" width="250" height="4" rx="2" fill="white" fill-opacity="0.7"/>
+  <rect x="150" y="340" width="200" height="4" rx="2" fill="white" fill-opacity="0.7"/>
+</svg> 

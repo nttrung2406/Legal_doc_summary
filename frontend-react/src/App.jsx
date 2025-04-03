@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { ThemeProvider, createTheme, CssBaseline } from '@mui/material';
 import { AuthProvider } from './context/AuthContext';
 import Header from './components/common/Header';
@@ -6,6 +6,7 @@ import Login from './components/Auth/Login';
 import Signup from './components/Auth/Signup';
 import DocumentList from './components/Document/DocumentList';
 import DocumentViewer from './components/Document/DocumentViewer';
+import LandingPage from './components/Landing/LandingPage';
 
 // Create a theme instance
 const theme = createTheme({
@@ -34,34 +35,46 @@ const ProtectedRoute = ({ children }) => {
   return children;
 };
 
+// Wrapper component to handle header visibility
+const AppContent = () => {
+  const location = useLocation();
+  const isLandingPage = location.pathname === '/';
+
+  return (
+    <>
+      {!isLandingPage && <Header />}
+      <Routes>
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/signup" element={<Signup />} />
+        <Route
+          path="/documents"
+          element={
+            <ProtectedRoute>
+              <DocumentList />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/document/:filename"
+          element={
+            <ProtectedRoute>
+              <DocumentViewer />
+            </ProtectedRoute>
+          }
+        />
+      </Routes>
+    </>
+  );
+};
+
 function App() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <AuthProvider>
         <Router>
-          <Header />
-          <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route path="/signup" element={<Signup />} />
-            <Route
-              path="/documents"
-              element={
-                <ProtectedRoute>
-                  <DocumentList />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/document/:filename"
-              element={
-                <ProtectedRoute>
-                  <DocumentViewer />
-                </ProtectedRoute>
-              }
-            />
-            <Route path="/" element={<Navigate to="/documents" replace />} />
-          </Routes>
+          <AppContent />
         </Router>
       </AuthProvider>
     </ThemeProvider>
