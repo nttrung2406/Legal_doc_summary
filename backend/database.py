@@ -116,13 +116,25 @@ def save_document(user_id: str, filename: str, chunks: list, embeddings: list):
         "filename": filename,
         "chunks": chunks,
         "embeddings": embeddings,
-        "created_at": datetime.utcnow()
+        "created_at": datetime.now()
     }
-    documents_collection.insert_one(document)
+    result = documents_collection.insert_one(document)
+    document["_id"] = str(result.inserted_id)
     return True, "Document saved successfully"
 
 def get_user_documents(user_id: str):
-    return list(documents_collection.find({"user_id": user_id}))
+    documents = documents_collection.find({"user_id": user_id})
+    return [
+        {
+            "_id": str(doc["_id"]),  # Convert ObjectId to string
+            "filename": doc["filename"],
+            "created_at": doc["created_at"]
+        }
+        for doc in documents
+    ]
 
 def get_document_by_filename(filename: str):
-    return documents_collection.find_one({"filename": filename}) 
+    document = documents_collection.find_one({"filename": filename})
+    # if document:
+    #     document["_id"] = document["_id"]  # Convert ObjectId to string
+    return document
