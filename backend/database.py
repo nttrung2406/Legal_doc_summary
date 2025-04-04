@@ -5,7 +5,7 @@ from jose import JWTError, jwt
 from typing import Optional
 import os
 from dotenv import load_dotenv
-
+from bson import ObjectId
 load_dotenv()
 
 MONGO_URI = os.getenv("MONGO_URI")
@@ -134,7 +134,11 @@ def get_user_documents(user_id: str):
     ]
 
 def get_document_by_filename(filename: str):
+    print(f"Looking for document with filename: {filename}")
     document = documents_collection.find_one({"filename": filename})
-    # if document:
-    #     document["_id"] = document["_id"]  # Convert ObjectId to string
+
+    if not document:
+        print("No document found")
+    else:
+        print(f"Found document!!!!")
     return document

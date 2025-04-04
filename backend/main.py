@@ -121,8 +121,11 @@ async def get_documents(current_user: dict = Depends(get_current_user)):
 @app.get("/document/{filename}")
 async def get_document(filename: str, current_user: dict = Depends(get_current_user)):
     document = get_document_by_filename(filename)
-    if not document or document["user_id"] != current_user["_id"]:
+    if not document or str(document["user_id"]) != str(current_user["_id"]):
         raise HTTPException(status_code=404, detail="Document not found")
+    
+    document["_id"] = str(document["_id"])
+    document["user_id"] = str(document["user_id"])
     return document
 
 @app.post("/summarize/{filename}")

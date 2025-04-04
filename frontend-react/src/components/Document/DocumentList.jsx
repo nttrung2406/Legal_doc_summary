@@ -13,6 +13,11 @@ import {
   Alert,
 } from '@mui/material';
 import { Upload as UploadIcon } from '@mui/icons-material';
+// import { pdfjs } from 'react-pdf';
+// import workerSrc from 'pdfjs-dist/build/pdf.worker.entry';
+
+// pdfjs.GlobalWorkerOptions.workerSrc = workerSrc;
+
 
 const DocumentList = () => {
   const navigate = useNavigate();
