@@ -41,13 +41,25 @@ const Signup = () => {
     }
 
     setLoading(true);
-    const result = await signup(formData.username, formData.email, formData.password);
-    if (result.success) {
-      navigate('/login');
-    } else {
-      setError(result.error);
+    try {
+      const result = await signup(formData.username, formData.email, formData.password);
+      if (result.success) {
+        navigate('/login');
+      } else {
+        // Handle different types of error responses
+        if (typeof result.error === 'object') {
+          // If error is an object (like validation error), extract the message
+          const errorMessage = result.error.detail || result.error.msg || 'Signup failed';
+          setError(errorMessage);
+        } else {
+          setError(result.error || 'Signup failed');
+        }
+      }
+    } catch (err) {
+      setError('An unexpected error occurred. Please try again.');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (

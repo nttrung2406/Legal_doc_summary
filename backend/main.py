@@ -8,6 +8,7 @@ import os
 from typing import List
 import json
 from jose import jwt, JWTError
+from pydantic import BaseModel
 from database import (
     create_user, verify_user, create_access_token,
     save_document, get_user_documents, get_document_by_filename,
@@ -19,6 +20,7 @@ from document_processor import (
     generate_summary, generate_paragraph_summaries, generate_chat_response,
     get_similar_chunks
 )
+
 
 app = FastAPI()
 
@@ -36,6 +38,11 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 UPLOAD_DIR = "uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
+class SignupRequest(BaseModel):
+    username: str
+    email: str
+    password: str
+
 async def get_current_user(token: str = Depends(oauth2_scheme)):
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
@@ -51,8 +58,8 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
     return user
 
 @app.post("/signup")
-async def signup(username: str, email: str, password: str):
-    success, message = create_user(username, email, password)
+async def signup(request: SignupRequest):
+    success, message = create_user(request.username, request.email, request.password)
     if not success:
         raise HTTPException(status_code=400, detail=message)
     return {"message": message}
