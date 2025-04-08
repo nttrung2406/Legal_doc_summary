@@ -120,13 +120,16 @@ async def get_documents(current_user: dict = Depends(get_current_user)):
 
 @app.get("/document/{filename}")
 async def get_document(filename: str, current_user: dict = Depends(get_current_user)):
-    document = get_document_by_filename(filename)
-    if not document or str(document["user_id"]) != str(current_user["_id"]):
-        raise HTTPException(status_code=404, detail="Document not found")
+    # document = get_document_by_filename(filename)
+    # if not document or str(document["user_id"]) != str(current_user["_id"]):
+    #     raise HTTPException(status_code=404, detail="Document not found")
     
-    document["_id"] = str(document["_id"])
-    document["user_id"] = str(document["user_id"])
-    return document
+    # document["_id"] = str(document["_id"])
+    # document["user_id"] = str(document["user_id"])
+    # return document
+    
+    pdf_path = "D:\\test\\Report.pdf"
+    return FileResponse(path=pdf_path, media_type="application/pdf", filename="Report.pdf")
 
 @app.post("/summarize/{filename}")
 async def summarize_document(
