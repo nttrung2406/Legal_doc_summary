@@ -39,6 +39,7 @@ const DocumentViewer = () => {
   const [chatQuery, setChatQuery] = useState('');
   const [chatResponse, setChatResponse] = useState('');
   const [chatLoading, setChatLoading] = useState(false);
+  const [PDFUrl, setPDFUrl] = useState('')
 
   useEffect(() => {
     fetchDocument();
@@ -46,8 +47,22 @@ const DocumentViewer = () => {
 
   const fetchDocument = async () => {
     try {
-      const data = await documents.get(filename);
-      setDocument(data);
+      //const data = await documents.get(filename);
+      setLoading(true);
+      const token = localStorage.getItem('token');
+      const res = await fetch(`http://localhost:8000/document/${filename}`, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+      if (!res.ok) {
+        console.error("Failed to fetch PDF:", res.status);
+        setError("Document not found");
+        return;
+      }
+      const blob = await res.blob();
+      const file = new File([blob], filename, { type: 'application/pdf' });
+      setDocument(file);  
     } catch (err) {
       setError('Failed to fetch document');
     } finally {
@@ -125,7 +140,7 @@ const DocumentViewer = () => {
         <Grid item xs={12} md={6}>
           <Paper sx={{ p: 2 }}>
             <Document
-              file={`http://localhost:8000/document/${filename}`}
+              file={document}
               onLoadSuccess={({ numPages }) => setNumPages(numPages)}
               loading={
                 <Box display="flex" justifyContent="center" p={2}>

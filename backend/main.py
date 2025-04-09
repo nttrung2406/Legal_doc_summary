@@ -9,6 +9,12 @@ from typing import List
 import json
 from jose import jwt, JWTError
 from pydantic import BaseModel
+import logging
+from fastapi.responses import StreamingResponse
+import sys
+import httpx
+from io import BytesIO
+
 from database import (
     create_user, verify_user, create_access_token,
     save_document, get_user_documents, get_document_by_filename,
@@ -20,8 +26,10 @@ from document_processor import (
     generate_summary, generate_paragraph_summaries, generate_chat_response,
     get_similar_chunks
 )
-from cloud_storage import (upload_file_to_cloud, get_files, delete_file)
+from cloud_storage import (upload_file_to_cloud, get_file, delete_file, get_pdf_url)
 
+logger = logging.getLogger('uvicorn.error')
+logger.setLevel(logging.DEBUG)
 
 app = FastAPI()
 
@@ -84,8 +92,8 @@ async def upload_file(
 ):
     if not file.filename.endswith('.pdf'):
         raise HTTPException(status_code=400, detail="Only PDF files are allowed")
-    file_name = file.filename
-    current_user_id = current_user["_id"]
+    file_name = os.path.splitext(file.filename)[0]
+    current_user_id = str(current_user["_id"])
     file_path = os.path.join(UPLOAD_DIR, file_name)
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
@@ -96,20 +104,24 @@ async def upload_file(
         embeddings = generate_embeddings(chunks)
 
         # Create public_id for the document to upload on Cloudinay 
-        # public_id = str(current_user_id + "_" + file_name)
-        file_content = await file.read()
-        print(file_content)
+        public_id = current_user_id + "_" + file_name
+        logger.debug(public_id)
         
-        success, message = save_document(
-                    current_user_id,
-                    file_name,
-                    chunks,
-                    embeddings
+        file.file.seek(0)
+        upload_result = upload_file_to_cloud(file.file, public_id)
+
+        success = None
+        if upload_result:
+            success, message = save_document(
+                current_user["_id"],
+                file.filename,
+                chunks,
+                embeddings
             )
-        
+        os.remove(file_path)
         if not success:
             # If document saving fails, clean up the uploaded file
-            os.remove(file_path)
+            logger.error(f"Upload failed: {e}")
             raise HTTPException(status_code=500, detail=message)
         
         return {"message": "File processed successfully"}
@@ -134,9 +146,26 @@ async def get_document(filename: str, current_user: dict = Depends(get_current_u
     # document["_id"] = str(document["_id"])
     # document["user_id"] = str(document["user_id"])
     # return document
-    
-    pdf_path = "D:\\test\\Report.pdf"
-    return FileResponse(path=pdf_path, media_type="application/pdf", filename="Report.pdf")
+    file_name = os.path.splitext(filename)[0]
+    current_user_id = str(current_user["_id"])
+    public_id = current_user_id + "_" + file_name
+    file = get_file(public_id)
+    logger.debug(file)
+    try:
+        pdf_url =  get_pdf_url(public_id)
+        async with httpx.AsyncClient() as client:
+            response = await client.get(pdf_url)
+        if response.status_code != 200:
+            raise HTTPException(status_code=404, detail="File not found")
+        return StreamingResponse(
+            BytesIO(response.content),
+            media_type="application/pdf",
+            headers={"Content-Disposition": f"inline; filename={filename}"}
+        )
+    except Exception as e:
+        logger.debug(e)
+
+    #return FileResponse(path=pdf_path, media_type="application/pdf", filename="Report.pdf")
 
 @app.post("/summarize/{filename}")
 async def summarize_document(

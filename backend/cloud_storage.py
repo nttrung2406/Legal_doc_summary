@@ -17,7 +17,7 @@ cloudinary.config(
 # Upload file to Cloudinary 
 def upload_file_to_cloud(file, public_id):
     try:
-        upload_result = cloudinary.uploader.upload(file, resource_type="auto", public_id=public_id)
+        upload_result = cloudinary.uploader.upload(file, resource_type="raw", public_id=public_id)
         return upload_result
     except Error as e:
         print("Upload failed:", e)
@@ -25,13 +25,14 @@ def upload_file_to_cloud(file, public_id):
 
 
 # Get 1 (or many) file(s) from Cloudinary with public_id in the array document_ids 
-def get_files(document_ids):
-    if (not isinstance(document_ids, list) or len(document_ids) == 0):
-        return False, "document_ids must be a non-empty array."
-    options = { 'max_results': 50 }
-    result = cloudinary.api.resources(**options)
-    matched_files = [file for file in result['resources'] if file['public_id'] in document_ids]
-    return True, matched_files 
+def get_file(document_id):
+    # if (not isinstance(document_ids, list) or len(document_ids) == 0):
+    #     return False, "document_ids must be a non-empty array."
+    # options = { 'max_results': 50 }
+    # result = cloudinary.api.resources(**options)
+    result = cloudinary.api.resource(document_id, resource_type="raw")
+    #matched_files = [file for file in result['resources'] if file['public_id'] in document_ids]
+    return True, result
 
 # Delete file with public_id is document_id on Cloudinary 
 def delete_file(document_id):
@@ -40,3 +41,7 @@ def delete_file(document_id):
     cloudinary.uploader.destroy(document_id)
     return True 
 #print(delete_file("Report_1"))
+
+def get_pdf_url(public_id: str):
+    url, options = cloudinary_url(public_id, resource_type="raw")
+    return url
