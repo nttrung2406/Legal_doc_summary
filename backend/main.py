@@ -20,6 +20,7 @@ from document_processor import (
     generate_summary, generate_paragraph_summaries, generate_chat_response,
     get_similar_chunks
 )
+from cloud_storage import (upload_file_to_cloud, get_files, delete_file)
 
 
 app = FastAPI()
@@ -83,8 +84,9 @@ async def upload_file(
 ):
     if not file.filename.endswith('.pdf'):
         raise HTTPException(status_code=400, detail="Only PDF files are allowed")
-    
-    file_path = os.path.join(UPLOAD_DIR, file.filename)
+    file_name = file.filename
+    current_user_id = current_user["_id"]
+    file_path = os.path.join(UPLOAD_DIR, file_name)
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
     
@@ -92,13 +94,18 @@ async def upload_file(
         text = extract_text_from_pdf(file_path)
         chunks = chunk_text(text)
         embeddings = generate_embeddings(chunks)
+
+        # Create public_id for the document to upload on Cloudinay 
+        # public_id = str(current_user_id + "_" + file_name)
+        file_content = await file.read()
+        print(file_content)
         
         success, message = save_document(
-            current_user["_id"],
-            file.filename,
-            chunks,
-            embeddings
-        )
+                    current_user_id,
+                    file_name,
+                    chunks,
+                    embeddings
+            )
         
         if not success:
             # If document saving fails, clean up the uploaded file
