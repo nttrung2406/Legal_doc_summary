@@ -145,7 +145,7 @@ const DocumentViewer = () => {
       )}
 
       <Grid container spacing={3}>
-        <Grid item xs={12} md={6}>
+        <Grid item xs={12} md={8}> 
           <Paper sx={{ p: 2, height: '100%', display: 'flex', flexDirection: 'column' }}>
             <Document
               file={document}
@@ -185,7 +185,7 @@ const DocumentViewer = () => {
           </Paper>
         </Grid>
 
-        <Grid item xs={12} md={6}>
+        <Grid item xs={12} md={8}>
           <Paper sx={{ p: 2, height: '100%', display: 'flex', flexDirection: 'column' }}>
             <Tabs value={activeTab} onChange={handleTabChange}>
               <Tab label="Overall Summary" />
@@ -214,7 +214,7 @@ const DocumentViewer = () => {
               )}
 
               {activeTab === 2 && (
-                <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+                <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', maxWidth: '500px', margin: '0 auto' }}>
                   <List sx={{ flex: 1, overflow: 'auto', mb: 2 }}>
                     {chatMessages.map((message, index) => (
                       <Box key={index}>
@@ -277,4 +277,4 @@ const DocumentViewer = () => {
   );
 };
 
-export default DocumentViewer; 
+export default DocumentViewer;
