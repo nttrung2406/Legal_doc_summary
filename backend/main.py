@@ -1,7 +1,7 @@
-from fastapi import FastAPI, UploadFile, File, HTTPException, Depends
+from fastapi import FastAPI, UploadFile, File, HTTPException, Depends, Body
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, StreamingResponse, JSONResponse
 from datetime import timedelta
 import shutil
 import os
@@ -51,6 +51,9 @@ class SignupRequest(BaseModel):
     username: str
     email: str
     password: str
+
+class ChatRequest(BaseModel):
+    query: str
 
 async def get_current_user(token: str = Depends(oauth2_scheme)):
     try:
@@ -199,15 +202,15 @@ async def get_paragraph_summaries(
 @app.post("/chat/{filename}")
 async def chat_with_document(
     filename: str,
-    query: str,
+    request: ChatRequest,
     current_user: dict = Depends(get_current_user)
 ):
     document = get_document_by_filename(filename)
-    if not document or document["user_id"] != current_user["_id"]:
+    if not document or str(document["user_id"]) != str(current_user["_id"]):
         raise HTTPException(status_code=404, detail="Document not found")
     
-    similar_chunks = get_similar_chunks(query, document["chunks"], document["embeddings"])
-    success, result = generate_chat_response(query, similar_chunks, current_user["_id"])
+    similar_chunks = get_similar_chunks(request.query, document["chunks"], document["embeddings"])
+    success, result = generate_chat_response(request.query, similar_chunks, str(current_user["_id"]))
     if not success:
         raise HTTPException(status_code=429, detail=result)
     return {"response": result}

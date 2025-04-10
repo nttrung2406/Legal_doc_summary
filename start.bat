@@ -35,7 +35,7 @@ if not exist "frontend-react\node_modules" (
 
 :: Start backend server
 echo Starting backend server...
-start cmd /k "cd backend && venv\Scripts\activate && uvicorn main:app --reload"
+start cmd /k "cd backend && uvicorn main:app --reload"
 
 :: Wait a moment to ensure backend starts
 timeout /t 2 /nobreak >nul

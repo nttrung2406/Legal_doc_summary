@@ -16,8 +16,12 @@ import {
   Accordion,
   AccordionSummary,
   AccordionDetails,
+  List,
+  ListItem,
+  ListItemText,
+  Divider,
 } from '@mui/material';
-import { ExpandMore as ExpandMoreIcon } from '@mui/icons-material';
+import { ExpandMore as ExpandMoreIcon, Send as SendIcon } from '@mui/icons-material';
 import { Document, Page, pdfjs } from 'react-pdf';
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
 import 'react-pdf/dist/esm/Page/TextLayer.css';
@@ -37,9 +41,9 @@ const DocumentViewer = () => {
   const [summary, setSummary] = useState('');
   const [paragraphSummaries, setParagraphSummaries] = useState([]);
   const [chatQuery, setChatQuery] = useState('');
-  const [chatResponse, setChatResponse] = useState('');
+  const [chatMessages, setChatMessages] = useState([]);
   const [chatLoading, setChatLoading] = useState(false);
-  const [PDFUrl, setPDFUrl] = useState('')
+  const [PDFUrl, setPDFUrl] = useState('');
 
   useEffect(() => {
     fetchDocument();
@@ -47,7 +51,6 @@ const DocumentViewer = () => {
 
   const fetchDocument = async () => {
     try {
-      //const data = await documents.get(filename);
       setLoading(true);
       const token = localStorage.getItem('token');
       const res = await fetch(`http://localhost:8000/document/${filename}`, {
@@ -95,8 +98,13 @@ const DocumentViewer = () => {
     setChatLoading(true);
     try {
       const data = await documents.chat(filename, chatQuery);
-      setChatResponse(data.response);
+      setChatMessages(prev => [...prev, 
+        { type: 'user', content: chatQuery },
+        { type: 'assistant', content: data.response }
+      ]);
+      setChatQuery(''); // Clear the input after successful chat
     } catch (err) {
+      console.error('Chat error:', err);
       setError('Failed to get chat response');
     } finally {
       setChatLoading(false);
@@ -138,7 +146,7 @@ const DocumentViewer = () => {
 
       <Grid container spacing={3}>
         <Grid item xs={12} md={6}>
-          <Paper sx={{ p: 2 }}>
+          <Paper sx={{ p: 2, height: '100%', display: 'flex', flexDirection: 'column' }}>
             <Document
               file={document}
               onLoadSuccess={({ numPages }) => setNumPages(numPages)}
@@ -178,20 +186,20 @@ const DocumentViewer = () => {
         </Grid>
 
         <Grid item xs={12} md={6}>
-          <Paper sx={{ p: 2 }}>
+          <Paper sx={{ p: 2, height: '100%', display: 'flex', flexDirection: 'column' }}>
             <Tabs value={activeTab} onChange={handleTabChange}>
               <Tab label="Overall Summary" />
               <Tab label="Paragraph Summaries" />
               <Tab label="Chat" />
             </Tabs>
 
-            <Box sx={{ mt: 2 }}>
+            <Box sx={{ mt: 2, flex: 1, display: 'flex', flexDirection: 'column' }}>
               {activeTab === 0 && (
-                <Typography>{summary || 'Loading summary...'}</Typography>
+                <Typography sx={{ flex: 1 }}>{summary || 'Loading summary...'}</Typography>
               )}
 
               {activeTab === 1 && (
-                <Box>
+                <Box sx={{ flex: 1, overflow: 'auto' }}>
                   {paragraphSummaries.map((summary, index) => (
                     <Accordion key={index}>
                       <AccordionSummary expandIcon={<ExpandMoreIcon />}>
@@ -206,28 +214,59 @@ const DocumentViewer = () => {
               )}
 
               {activeTab === 2 && (
-                <Box>
-                  <TextField
-                    fullWidth
-                    multiline
-                    rows={3}
-                    value={chatQuery}
-                    onChange={(e) => setChatQuery(e.target.value)}
-                    placeholder="Ask a question about the document..."
-                    sx={{ mb: 2 }}
-                  />
-                  <Button
-                    variant="contained"
-                    onClick={handleChat}
-                    disabled={chatLoading || !chatQuery.trim()}
-                  >
-                    {chatLoading ? 'Getting response...' : 'Ask'}
-                  </Button>
-                  {chatResponse && (
-                    <Paper sx={{ p: 2, mt: 2 }}>
-                      <Typography>{chatResponse}</Typography>
-                    </Paper>
-                  )}
+                <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+                  <List sx={{ flex: 1, overflow: 'auto', mb: 2 }}>
+                    {chatMessages.map((message, index) => (
+                      <Box key={index}>
+                        <ListItem
+                          sx={{
+                            justifyContent: message.type === 'user' ? 'flex-end' : 'flex-start',
+                            alignItems: 'flex-start'
+                          }}
+                        >
+                          <Paper
+                            elevation={1}
+                            sx={{
+                              p: 2,
+                              maxWidth: '70%',
+                              backgroundColor: message.type === 'user' ? 'primary.light' : 'grey.100',
+                              color: message.type === 'user' ? 'white' : 'text.primary'
+                            }}
+                          >
+                            <ListItemText
+                              primary={message.content}
+                              sx={{ wordBreak: 'break-word' }}
+                            />
+                          </Paper>
+                        </ListItem>
+                        <Divider />
+                      </Box>
+                    ))}
+                  </List>
+                  <Box sx={{ display: 'flex', gap: 1, mt: 'auto' }}>
+                    <TextField
+                      fullWidth
+                      multiline
+                      maxRows={3}
+                      value={chatQuery}
+                      onChange={(e) => setChatQuery(e.target.value)}
+                      placeholder="Ask a question about the document..."
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault();
+                          handleChat();
+                        }
+                      }}
+                    />
+                    <Button
+                      variant="contained"
+                      onClick={handleChat}
+                      disabled={chatLoading || !chatQuery.trim()}
+                      sx={{ minWidth: '100px' }}
+                    >
+                      {chatLoading ? <CircularProgress size={24} /> : <SendIcon />}
+                    </Button>
+                  </Box>
                 </Box>
               )}
             </Box>

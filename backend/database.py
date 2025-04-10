@@ -1,11 +1,22 @@
 from pymongo import MongoClient
+from gridfs import GridFS
 from passlib.context import CryptContext
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from jose import JWTError, jwt
 from typing import Optional
 import os
 from dotenv import load_dotenv
 from bson import ObjectId
+import json
+
+class JSONEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, ObjectId):
+            return str(obj)
+        if isinstance(obj, (datetime, date)):
+            return obj.isoformat()
+        return super().default(obj)
+
 load_dotenv()
 
 MONGO_URI = os.getenv("MONGO_URI")
@@ -17,14 +28,17 @@ users_collection = db.users
 documents_collection = db.documents
 api_usage_collection = db.api_usage
 
+# GridFS
+fs = GridFS(db)
+
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 # Settings
 SECRET_KEY = os.getenv("SECRET_KEY")
 ALGORITHM = os.getenv("ALGORITHM")
 ACCESS_TOKEN_EXPIRE_MINUTES = os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES") 
-MAX_REQUESTS_PER_DAY = os.getenv("MAX_REQUESTS_PER_DAY") 
-REQUEST_COOLDOWN = os.getenv("REQUEST_COOLDOWN")  
+MAX_REQUESTS_PER_DAY = int(os.getenv("MAX_REQUESTS_PER_DAY", "10"))
+REQUEST_COOLDOWN = float(os.getenv("REQUEST_COOLDOWN", "1.0"))
 
 def check_api_usage(user_id: str) -> tuple[bool, str]:
     """Check if user has exceeded daily API limit or needs to wait for cooldown."""
@@ -32,13 +46,13 @@ def check_api_usage(user_id: str) -> tuple[bool, str]:
     
     usage = api_usage_collection.find_one({
         "user_id": user_id,
-        "date": today
+        "date": today.isoformat()  # Convert date to ISO format string
     })
     
     if not usage:
         api_usage_collection.insert_one({
             "user_id": user_id,
-            "date": today,
+            "date": today.isoformat(),  # Convert date to ISO format string
             "request_count": 0,
             "last_request_time": None
         })
@@ -62,7 +76,7 @@ def update_api_usage(user_id: str):
     api_usage_collection.update_one(
         {
             "user_id": user_id,
-            "date": today
+            "date": today.isoformat()  # Convert date to ISO format string
         },
         {
             "$inc": {"request_count": 1},
@@ -110,12 +124,16 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
-def save_document(user_id: str, filename: str, chunks: list, embeddings: list):
+def save_document(user_id: str, filename: str, chunks: list, embeddings: list, pdf_file):
+    # Save PDF to GridFS
+    pdf_id = fs.put(pdf_file, filename=filename)
+    
     document = {
         "user_id": user_id,
         "filename": filename,
         "chunks": chunks,
         "embeddings": embeddings,
+        "pdf_id": pdf_id,
         "created_at": datetime.now()
     }
     result = documents_collection.insert_one(document)
@@ -128,7 +146,8 @@ def get_user_documents(user_id: str):
         {
             "_id": str(doc["_id"]),  # Convert ObjectId to string
             "filename": doc["filename"],
-            "created_at": doc["created_at"]
+            "created_at": doc["created_at"].isoformat() if isinstance(doc["created_at"], (datetime, date)) else doc["created_at"],
+            "user_id": str(doc["user_id"])  # Convert ObjectId to string
         }
         for doc in documents
     ]
@@ -139,6 +158,19 @@ def get_document_by_filename(filename: str):
 
     if not document:
         print("No document found")
-    else:
-        print(f"Found document!!!!")
+        return None
+    
+    print(f"Found document!!!!")
+    # Convert ObjectId to string and datetime to ISO format
+    document['_id'] = str(document['_id'])
+    document['user_id'] = str(document['user_id'])
+    if 'created_at' in document:
+        document['created_at'] = document['created_at'].isoformat() if isinstance(document['created_at'], (datetime, date)) else document['created_at']
     return document
+
+def get_pdf_file(pdf_id):
+    """Retrieve PDF file from GridFS"""
+    try:
+        return fs.get(ObjectId(pdf_id))
+    except:
+        return None
