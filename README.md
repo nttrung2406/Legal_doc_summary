@@ -16,6 +16,13 @@ A web application that helps users analyze and understand legal documents using 
 - Node.js 16+
 - MongoDB
 - Google Gemini API key
+- Prometheus, Grafana
+- Earlang, RabbitMQ
+
+## Workflow
+
+![image](https://github.com/nttrung2406/Legal_doc_summary/blob/main/pipeline.jpg?raw=true)
+
 
 ## Setup
 
