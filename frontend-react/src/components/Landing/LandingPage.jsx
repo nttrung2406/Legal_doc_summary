@@ -48,7 +48,7 @@ const LandingPage = () => {
                 fontSize: { xs: '1.1rem', md: '1.25rem' },
               }}
             >
-              Transform complex legal documents into clear, concise summaries with our AI-powered platform.
+              Hỗ trợ chuyển đổi các tài liệu pháp lý phức tạp thành bản tóm tắt rõ ràng, ngắn gọn bằng nền tảng hỗ trợ AI.
             </Typography>
             <Box sx={{ display: 'flex', gap: 2 }}>
               <Button
@@ -63,7 +63,7 @@ const LandingPage = () => {
                   },
                 }}
               >
-                Get Started
+                Bát đầu
               </Button>
               <Button
                 variant="outlined"
@@ -78,7 +78,7 @@ const LandingPage = () => {
                   },
                 }}
               >
-                Sign In
+                Đăng nhập
               </Button>
             </Box>
           </Grid>

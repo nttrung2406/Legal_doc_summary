@@ -67,7 +67,7 @@ const Login = () => {
             Welcome to ReadLaw
           </Typography>
           <Typography component="h2" variant="h6" sx={{ mb: 3 }}>
-            Sign In
+            Đăng nhập
           </Typography>
 
           {error && (
@@ -82,7 +82,7 @@ const Login = () => {
               required
               fullWidth
               id="username"
-              label="Username"
+              label="Tên tài khoản"
               name="username"
               autoComplete="username"
               autoFocus
@@ -94,7 +94,7 @@ const Login = () => {
               required
               fullWidth
               name="password"
-              label="Password"
+              label="Mật khẩu"
               type="password"
               id="password"
               autoComplete="current-password"
@@ -108,11 +108,11 @@ const Login = () => {
               sx={{ mt: 3, mb: 2 }}
               disabled={loading}
             >
-              {loading ? 'Signing in...' : 'Sign In'}
+              {loading ? 'Đang đăng nhập...' : 'Đăng nhập'}
             </Button>
             <Box sx={{ textAlign: 'center' }}>
               <Link href="/signup" variant="body2">
-                {"Don't have an account? Sign Up"}
+                {"Không có tài khoản? Đăng ký"}
               </Link>
             </Box>
           </Box>

@@ -83,7 +83,7 @@ const Signup = () => {
           }}
         >
           <Typography component="h1" variant="h5" sx={{ mb: 3 }}>
-            Create Account
+            Đăng ký tài khoản
           </Typography>
 
           {error && (
@@ -98,7 +98,7 @@ const Signup = () => {
               required
               fullWidth
               id="username"
-              label="Username"
+              label="Tên tài khoản"
               name="username"
               autoComplete="username"
               autoFocus
@@ -110,7 +110,7 @@ const Signup = () => {
               required
               fullWidth
               id="email"
-              label="Email Address"
+              label="Email"
               name="email"
               autoComplete="email"
               value={formData.email}
@@ -121,7 +121,7 @@ const Signup = () => {
               required
               fullWidth
               name="password"
-              label="Password"
+              label="Mật khẩu"
               type="password"
               id="password"
               autoComplete="new-password"
@@ -133,7 +133,7 @@ const Signup = () => {
               required
               fullWidth
               name="confirmPassword"
-              label="Confirm Password"
+              label="Nhập lại mật khẩu"
               type="password"
               id="confirmPassword"
               value={formData.confirmPassword}
@@ -146,11 +146,11 @@ const Signup = () => {
               sx={{ mt: 3, mb: 2 }}
               disabled={loading}
             >
-              {loading ? 'Creating Account...' : 'Sign Up'}
+              {loading ? 'Đang tạo tài khoản...' : 'Đăng ký'}
             </Button>
             <Box sx={{ textAlign: 'center' }}>
               <Link href="/login" variant="body2">
-                {'Already have an account? Sign In'}
+                {'Đã có tài khoản? Đăng nhập'}
               </Link>
             </Box>
           </Box>

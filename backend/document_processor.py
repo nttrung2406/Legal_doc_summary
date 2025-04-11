@@ -11,6 +11,12 @@ import os
 from dotenv import load_dotenv
 import time
 from database import check_api_usage, update_api_usage
+from paddleocr import PaddleOCR
+import cv2
+import numpy as np
+import logging
+
+logger = logging.getLogger(__name__)
 
 load_dotenv()
 
@@ -20,16 +26,44 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 genai.configure(api_key=GEMINI_API_KEY)
 model = genai.GenerativeModel('gemini-1.5-flash')
 
-
 tokenizer = AutoTokenizer.from_pretrained('sentence-transformers/all-MiniLM-L6-v2')
 embedding_model = AutoModel.from_pretrained('sentence-transformers/all-MiniLM-L6-v2')
 
+# Initialize PaddleOCR
+ocr = PaddleOCR(use_angle_cls=True, lang='en', use_gpu=False)  # Set use_gpu=True if you have GPU
+
 def extract_text_from_pdf(pdf_path: str) -> str:
-    """Extract text from PDF file."""
+    """Extract text from PDF file including text from images."""
     doc = fitz.open(pdf_path)
     text = ""
-    for page in doc:
+    
+    for page_num in range(len(doc)):
+        page = doc[page_num]
+        
+        # Extract regular text
         text += page.get_text()
+        
+        # Extract text from images
+        image_list = page.get_images(full=True)
+        for img_index, img in enumerate(image_list):
+            xref = img[0]
+            base_image = doc.extract_image(xref)
+            image_bytes = base_image["image"]
+            
+            # Convert image bytes to numpy array
+            nparr = np.frombuffer(image_bytes, np.uint8)
+            img_np = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+            
+            # Perform OCR on the image
+            try:
+                result = ocr.ocr(img_np, cls=True)
+                if result and len(result) > 0:
+                    for line in result[0]:
+                        text += line[1][0] + "\n"  
+            except Exception as e:
+                logger.error(f"Error processing image on page {page_num + 1}: {str(e)}")
+                continue
+    
     doc.close()
     return text
 

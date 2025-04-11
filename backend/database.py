@@ -8,6 +8,9 @@ import os
 from dotenv import load_dotenv
 from bson import ObjectId
 import json
+import logging
+
+logger = logging.getLogger(__name__)
 
 class JSONEncoder(json.JSONEncoder):
     def default(self, obj):
@@ -125,20 +128,24 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     return encoded_jwt
 
 def save_document(user_id: str, filename: str, chunks: list, embeddings: list, pdf_file):
-    # Save PDF to GridFS
-    pdf_id = fs.put(pdf_file, filename=filename)
-    
-    document = {
-        "user_id": user_id,
-        "filename": filename,
-        "chunks": chunks,
-        "embeddings": embeddings,
-        "pdf_id": pdf_id,
-        "created_at": datetime.now()
-    }
-    result = documents_collection.insert_one(document)
-    document["_id"] = str(result.inserted_id)
-    return True, "Document saved successfully"
+    try:
+        # Save PDF to GridFS
+        pdf_id = fs.put(pdf_file, filename=filename)
+        
+        document = {
+            "user_id": user_id,
+            "filename": filename,
+            "chunks": chunks,
+            "embeddings": embeddings,
+            "pdf_id": str(pdf_id),  # Convert ObjectId to string
+            "created_at": datetime.now()
+        }
+        
+        result = documents_collection.insert_one(document)
+        return True, "Document saved successfully"
+    except Exception as e:
+        logger.error(f"Error saving document: {str(e)}", exc_info=True)
+        return False, f"Error saving document: {str(e)}"
 
 def get_user_documents(user_id: str):
     documents = documents_collection.find({"user_id": user_id})

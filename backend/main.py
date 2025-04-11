@@ -95,45 +95,58 @@ async def upload_file(
 ):
     if not file.filename.endswith('.pdf'):
         raise HTTPException(status_code=400, detail="Only PDF files are allowed")
+    
     file_name = os.path.splitext(file.filename)[0]
     current_user_id = str(current_user["_id"])
     file_path = os.path.join(UPLOAD_DIR, file_name)
-    with open(file_path, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
     
     try:
+        # Save the file temporarily
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+        
+        # Reset file pointer for later use
+        file.file.seek(0)
+        
+        # Extract text and process document
         text = extract_text_from_pdf(file_path)
         chunks = chunk_text(text)
         embeddings = generate_embeddings(chunks)
 
-        # Create public_id for the document to upload on Cloudinay 
+        # Create public_id for Cloudinary
         public_id = current_user_id + "_" + file_name
-        logger.debug(public_id)
+        logger.debug(f"Uploading to Cloudinary with public_id: {public_id}")
         
-        file.file.seek(0)
+        # Upload to Cloudinary
         upload_result = upload_file_to_cloud(file.file, public_id)
+        if not upload_result:
+            raise HTTPException(status_code=500, detail="Failed to upload file to cloud storage")
 
-        success = None
-        if upload_result:
-            success, message = save_document(
-                current_user["_id"],
-                file.filename,
-                chunks,
-                embeddings
-            )
-        os.remove(file_path)
+        # Save document to database
+        success, message = save_document(
+            current_user["_id"],
+            file.filename,
+            chunks,
+            embeddings,
+            file.file  # Pass the file object for GridFS
+        )
+        
         if not success:
-            # If document saving fails, clean up the uploaded file
-            logger.error(f"Upload failed: {e}")
             raise HTTPException(status_code=500, detail=message)
         
         return {"message": "File processed successfully"}
     
     except Exception as e:
-        # If any error occurs during processing, clean up the uploaded file
+        logger.error(f"Error in upload endpoint: {str(e)}", exc_info=True)
+        # Clean up temporary file if it exists
         if os.path.exists(file_path):
             os.remove(file_path)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=f"Error processing file: {str(e)}")
+    
+    finally:
+        # Clean up temporary file
+        if os.path.exists(file_path):
+            os.remove(file_path)
 
 @app.get("/documents")
 async def get_documents(current_user: dict = Depends(get_current_user)):

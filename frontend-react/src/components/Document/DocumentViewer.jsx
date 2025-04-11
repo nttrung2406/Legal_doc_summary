@@ -128,13 +128,13 @@ const DocumentViewer = () => {
   }
 
   return (
-    <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
+    <Container maxWidth="xl" sx={{ mt: 12, mb: 12 }}>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={4}>
         <Typography variant="h4" component="h1">
           {filename}
         </Typography>
         <Button variant="outlined" onClick={() => navigate('/documents')}>
-          Back to Documents
+          Tài liệu
         </Button>
       </Box>
 
@@ -188,9 +188,9 @@ const DocumentViewer = () => {
         <Grid item xs={12} md={8}>
           <Paper sx={{ p: 2, height: '100%', display: 'flex', flexDirection: 'column' }}>
             <Tabs value={activeTab} onChange={handleTabChange}>
-              <Tab label="Overall Summary" />
-              <Tab label="Paragraph Summaries" />
-              <Tab label="Chat" />
+              <Tab label="Tóm tắt tài liệu" />
+              <Tab label="Tóm tắt từng đoạn" />
+              <Tab label="Hỏi đáp" />
             </Tabs>
 
             <Box sx={{ mt: 2, flex: 1, display: 'flex', flexDirection: 'column' }}>
@@ -250,7 +250,7 @@ const DocumentViewer = () => {
                       maxRows={3}
                       value={chatQuery}
                       onChange={(e) => setChatQuery(e.target.value)}
-                      placeholder="Ask a question about the document..."
+                      placeholder="Hỏi gì đó về tài liệu..."
                       onKeyDown={(e) => {
                         if (e.key === 'Enter' && !e.shiftKey) {
                           e.preventDefault();
