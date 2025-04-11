@@ -11,6 +11,12 @@ import os
 from dotenv import load_dotenv
 import time
 from database import check_api_usage, update_api_usage
+from paddleocr import PaddleOCR
+import cv2
+import numpy as np
+import logging
+
+logger = logging.getLogger(__name__)
 
 load_dotenv()
 
@@ -20,16 +26,44 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 genai.configure(api_key=GEMINI_API_KEY)
 model = genai.GenerativeModel('gemini-1.5-flash')
 
-
 tokenizer = AutoTokenizer.from_pretrained('sentence-transformers/all-MiniLM-L6-v2')
 embedding_model = AutoModel.from_pretrained('sentence-transformers/all-MiniLM-L6-v2')
 
+# Initialize PaddleOCR
+ocr = PaddleOCR(use_angle_cls=True, lang='en', use_gpu=False)  # Set use_gpu=True if you have GPU
+
 def extract_text_from_pdf(pdf_path: str) -> str:
-    """Extract text from PDF file."""
+    """Extract text from PDF file including text from images."""
     doc = fitz.open(pdf_path)
     text = ""
-    for page in doc:
+    
+    for page_num in range(len(doc)):
+        page = doc[page_num]
+        
+        # Extract regular text
         text += page.get_text()
+        
+        # Extract text from images
+        image_list = page.get_images(full=True)
+        for img_index, img in enumerate(image_list):
+            xref = img[0]
+            base_image = doc.extract_image(xref)
+            image_bytes = base_image["image"]
+            
+            # Convert image bytes to numpy array
+            nparr = np.frombuffer(image_bytes, np.uint8)
+            img_np = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+            
+            # Perform OCR on the image
+            try:
+                result = ocr.ocr(img_np, cls=True)
+                if result and len(result) > 0:
+                    for line in result[0]:
+                        text += line[1][0] + "\n"  
+            except Exception as e:
+                logger.error(f"Error processing image on page {page_num + 1}: {str(e)}")
+                continue
+    
     doc.close()
     return text
 
@@ -110,7 +144,30 @@ def generate_chat_response(query: str, context_chunks: List[str], user_id: str) 
         return False, message
     
     context = "\n".join(context_chunks)
-    prompt = f"Based on the following context from a legal document, please answer the question:\n\nContext:\n{context}\n\nQuestion: {query}"
+    prompt = f"""
+    Bạn là một trợ lý AI chuyên về pháp luật Việt Nam. Chỉ sử dụng **ngữ cảnh được cung cấp** bên dưới để trả lời câu hỏi của người dùng một cách chính xác nhất có thể.
+
+    --- NGỮ CẢNH (trích từ văn bản pháp luật) ---
+    {context}
+    ---------------------------------------------
+
+    Trả lời câu hỏi bên dưới **dựa hoàn toàn vào ngữ cảnh trên**. Nếu câu hỏi không được đề cập rõ ràng trong ngữ cảnh, hãy nêu rõ rằng nội dung đó không có trong tài liệu.
+
+    Nếu câu hỏi đề cập đến quy định pháp luật liên quan nhưng không có trong ngữ cảnh, bạn có thể gợi ý người dùng tra cứu trên cổng thông tin pháp luật chính thức: https://thuvienphapluat.vn/
+
+    --- CÂU HỎI ---
+    {query}
+
+    --- HƯỚNG DẪN ---
+    - **Tuyệt đối không bịa đặt** quy định hoặc thông tin pháp luật.
+    - Nếu câu trả lời có thể được tìm thấy trong ngữ cảnh, hãy trích dẫn hoặc diễn giải lại một cách chính xác.
+    - Nếu nội dung nằm ngoài phạm vi của ngữ cảnh, hãy nêu rõ điều đó.
+    - Chỉ đề cập đến https://thuvienphapluat.vn nếu cần gợi ý tra cứu thêm.
+
+    **Chỉ trả lời bằng tiếng Việt**. Ghi câu trả lời bên dưới:
+    """
+
+
     response = model.generate_content(prompt)
     update_api_usage(user_id)
     return True, response.text 

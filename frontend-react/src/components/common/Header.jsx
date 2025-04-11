@@ -25,19 +25,19 @@ const Header = () => {
         {user ? (
           <Box>
             <Button color="inherit" onClick={() => navigate('/documents')}>
-              Documents
+              Tài liệu
             </Button>
             <Button color="inherit" onClick={handleLogout}>
-              Logout
+              Đăng xuất
             </Button>
           </Box>
         ) : (
           <Box>
             <Button color="inherit" onClick={() => navigate('/login')}>
-              Login
+              Đăng nhập
             </Button>
             <Button color="inherit" onClick={() => navigate('/signup')}>
-              Sign Up
+              Đăng ký
             </Button>
           </Box>
         )}

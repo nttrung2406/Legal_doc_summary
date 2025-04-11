@@ -33,6 +33,21 @@ if not exist "frontend-react\node_modules" (
     cd ..
 )
 
+:: Start RabbitMQ server (if not running)
+echo Starting RabbitMQ server...
+start cmd /k "rabbitmq-server"
+
+:: Wait for RabbitMQ to start
+timeout /t 5 /nobreak >nul
+
+:: Start Celery worker
+echo Starting Celery worker...
+start cmd /k "cd backend && celery -A tasks worker --loglevel=info"
+
+:: Start Celery beat for scheduled tasks
+echo Starting Celery beat...
+start cmd /k "cd backend && celery -A tasks beat --loglevel=info"
+
 :: Start backend server
 echo Starting backend server...
 start cmd /k "cd backend && uvicorn main:app --reload"
@@ -46,6 +61,7 @@ start cmd /k "cd frontend-react && npm run dev"
 
 echo.
 echo Servers are starting...
+echo RabbitMQ will be available at: http://localhost:15672
 echo Backend will be available at: http://localhost:8000
 echo Frontend will be available at: http://localhost:5173
 echo.

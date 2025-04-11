@@ -1,7 +1,7 @@
-from fastapi import FastAPI, UploadFile, File, HTTPException, Depends
+from fastapi import FastAPI, UploadFile, File, HTTPException, Depends, Body
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, StreamingResponse, JSONResponse
 from datetime import timedelta
 import shutil
 import os
@@ -9,6 +9,12 @@ from typing import List
 import json
 from jose import jwt, JWTError
 from pydantic import BaseModel
+import logging
+from fastapi.responses import StreamingResponse
+import sys
+import httpx
+from io import BytesIO
+
 from database import (
     create_user, verify_user, create_access_token,
     save_document, get_user_documents, get_document_by_filename,
@@ -20,7 +26,10 @@ from document_processor import (
     generate_summary, generate_paragraph_summaries, generate_chat_response,
     get_similar_chunks
 )
+from cloud_storage import (upload_file_to_cloud, get_file, delete_file, get_pdf_url)
 
+logger = logging.getLogger('uvicorn.error')
+logger.setLevel(logging.DEBUG)
 
 app = FastAPI()
 
@@ -42,6 +51,9 @@ class SignupRequest(BaseModel):
     username: str
     email: str
     password: str
+
+class ChatRequest(BaseModel):
+    query: str
 
 async def get_current_user(token: str = Depends(oauth2_scheme)):
     try:
@@ -84,34 +96,57 @@ async def upload_file(
     if not file.filename.endswith('.pdf'):
         raise HTTPException(status_code=400, detail="Only PDF files are allowed")
     
-    file_path = os.path.join(UPLOAD_DIR, file.filename)
-    with open(file_path, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
+    file_name = os.path.splitext(file.filename)[0]
+    current_user_id = str(current_user["_id"])
+    file_path = os.path.join(UPLOAD_DIR, file_name)
     
     try:
+        # Save the file temporarily
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+        
+        # Reset file pointer for later use
+        file.file.seek(0)
+        
+        # Extract text and process document
         text = extract_text_from_pdf(file_path)
         chunks = chunk_text(text)
         embeddings = generate_embeddings(chunks)
+
+        # Create public_id for Cloudinary
+        public_id = current_user_id + "_" + file_name
+        logger.debug(f"Uploading to Cloudinary with public_id: {public_id}")
         
+        # Upload to Cloudinary
+        upload_result = upload_file_to_cloud(file.file, public_id)
+        if not upload_result:
+            raise HTTPException(status_code=500, detail="Failed to upload file to cloud storage")
+
+        # Save document to database
         success, message = save_document(
             current_user["_id"],
             file.filename,
             chunks,
-            embeddings
+            embeddings,
+            file.file  # Pass the file object for GridFS
         )
         
         if not success:
-            # If document saving fails, clean up the uploaded file
-            os.remove(file_path)
             raise HTTPException(status_code=500, detail=message)
         
         return {"message": "File processed successfully"}
     
     except Exception as e:
-        # If any error occurs during processing, clean up the uploaded file
+        logger.error(f"Error in upload endpoint: {str(e)}", exc_info=True)
+        # Clean up temporary file if it exists
         if os.path.exists(file_path):
             os.remove(file_path)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=f"Error processing file: {str(e)}")
+    
+    finally:
+        # Clean up temporary file
+        if os.path.exists(file_path):
+            os.remove(file_path)
 
 @app.get("/documents")
 async def get_documents(current_user: dict = Depends(get_current_user)):
@@ -120,10 +155,33 @@ async def get_documents(current_user: dict = Depends(get_current_user)):
 
 @app.get("/document/{filename}")
 async def get_document(filename: str, current_user: dict = Depends(get_current_user)):
-    document = get_document_by_filename(filename)
-    if not document or document["user_id"] != current_user["_id"]:
-        raise HTTPException(status_code=404, detail="Document not found")
-    return document
+    # document = get_document_by_filename(filename)
+    # if not document or str(document["user_id"]) != str(current_user["_id"]):
+    #     raise HTTPException(status_code=404, detail="Document not found")
+    
+    # document["_id"] = str(document["_id"])
+    # document["user_id"] = str(document["user_id"])
+    # return document
+    file_name = os.path.splitext(filename)[0]
+    current_user_id = str(current_user["_id"])
+    public_id = current_user_id + "_" + file_name
+    file = get_file(public_id)
+    logger.debug(file)
+    try:
+        pdf_url =  get_pdf_url(public_id)
+        async with httpx.AsyncClient() as client:
+            response = await client.get(pdf_url)
+        if response.status_code != 200:
+            raise HTTPException(status_code=404, detail="File not found")
+        return StreamingResponse(
+            BytesIO(response.content),
+            media_type="application/pdf",
+            headers={"Content-Disposition": f"inline; filename={filename}"}
+        )
+    except Exception as e:
+        logger.debug(e)
+
+    #return FileResponse(path=pdf_path, media_type="application/pdf", filename="Report.pdf")
 
 @app.post("/summarize/{filename}")
 async def summarize_document(
@@ -157,15 +215,15 @@ async def get_paragraph_summaries(
 @app.post("/chat/{filename}")
 async def chat_with_document(
     filename: str,
-    query: str,
+    request: ChatRequest,
     current_user: dict = Depends(get_current_user)
 ):
     document = get_document_by_filename(filename)
-    if not document or document["user_id"] != current_user["_id"]:
+    if not document or str(document["user_id"]) != str(current_user["_id"]):
         raise HTTPException(status_code=404, detail="Document not found")
     
-    similar_chunks = get_similar_chunks(query, document["chunks"], document["embeddings"])
-    success, result = generate_chat_response(query, similar_chunks, current_user["_id"])
+    similar_chunks = get_similar_chunks(request.query, document["chunks"], document["embeddings"])
+    success, result = generate_chat_response(request.query, similar_chunks, str(current_user["_id"]))
     if not success:
         raise HTTPException(status_code=429, detail=result)
     return {"response": result}

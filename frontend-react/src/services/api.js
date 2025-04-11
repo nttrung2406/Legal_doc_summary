@@ -51,6 +51,8 @@ export const documents = {
         'Content-Type': 'multipart/form-data',
       },
     });
+    
+
     return response.data;
   },
 
