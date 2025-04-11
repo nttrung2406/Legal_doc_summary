@@ -145,27 +145,28 @@ def generate_chat_response(query: str, context_chunks: List[str], user_id: str) 
     
     context = "\n".join(context_chunks)
     prompt = f"""
-        You are a legal assistant AI specialized in Vietnamese law. Use only the provided context to answer the user’s question as precisely as possible.
+    Bạn là một trợ lý AI chuyên về pháp luật Việt Nam. Chỉ sử dụng **ngữ cảnh được cung cấp** bên dưới để trả lời câu hỏi của người dùng một cách chính xác nhất có thể.
 
-        --- CONTEXT (from a legal document) ---
-        {context}
-        ---------------------------------------
+    --- NGỮ CẢNH (trích từ văn bản pháp luật) ---
+    {context}
+    ---------------------------------------------
 
-        Answer the question below based strictly on the above context. If the question is not clearly answered in the context, explain that it is not mentioned. 
+    Trả lời câu hỏi bên dưới **dựa hoàn toàn vào ngữ cảnh trên**. Nếu câu hỏi không được đề cập rõ ràng trong ngữ cảnh, hãy nêu rõ rằng nội dung đó không có trong tài liệu.
 
-        If the question asks about related legal regulations that are not in the context, you may suggest looking it up on the official Vietnamese law website: https://thuvienphapluat.vn/
+    Nếu câu hỏi đề cập đến quy định pháp luật liên quan nhưng không có trong ngữ cảnh, bạn có thể gợi ý người dùng tra cứu trên cổng thông tin pháp luật chính thức: https://thuvienphapluat.vn/
 
-        --- QUESTION ---
-        {query}
+    --- CÂU HỎI ---
+    {query}
 
-        --- INSTRUCTIONS ---
-        - Do NOT fabricate any laws or legal facts.
-        - If the answer can be found in the context, quote or paraphrase it directly.
-        - If it’s outside the scope of the context, clearly state that.
-        - Only mention https://thuvienphapluat.vn as a source for further legal exploration if needed.
+    --- HƯỚNG DẪN ---
+    - **Tuyệt đối không bịa đặt** quy định hoặc thông tin pháp luật.
+    - Nếu câu trả lời có thể được tìm thấy trong ngữ cảnh, hãy trích dẫn hoặc diễn giải lại một cách chính xác.
+    - Nếu nội dung nằm ngoài phạm vi của ngữ cảnh, hãy nêu rõ điều đó.
+    - Chỉ đề cập đến https://thuvienphapluat.vn nếu cần gợi ý tra cứu thêm.
 
-        Provide your response below:
-        """
+    **Chỉ trả lời bằng tiếng Việt**. Ghi câu trả lời bên dưới:
+    """
+
 
     response = model.generate_content(prompt)
     update_api_usage(user_id)
