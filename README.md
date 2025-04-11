@@ -16,6 +16,8 @@ A web application that helps users analyze and understand legal documents using 
 - Node.js 16+
 - MongoDB
 - Google Gemini API key
+- Prometheus, Grafana
+- Earlang, RabbitMQ
 
 ## Setup
 
