@@ -1,4 +1,4 @@
-from fastapi import FastAPI, UploadFile, File, HTTPException, Depends, Body
+from fastapi import FastAPI, UploadFile, File, HTTPException, Depends, Body, Request
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, StreamingResponse, JSONResponse
@@ -14,6 +14,9 @@ from fastapi.responses import StreamingResponse
 import sys
 import httpx
 from io import BytesIO
+import threading
+from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
+from starlette_prometheus import metrics, PrometheusMiddleware
 
 from database import (
     create_user, verify_user, create_access_token,
@@ -27,11 +30,19 @@ from document_processor import (
     get_similar_chunks
 )
 from cloud_storage import (upload_file_to_cloud, get_file, delete_file, get_pdf_url)
+from monitoring import (
+    monitor_request, update_system_metrics,
+    UPLOAD_COUNT, CHAT_REQUESTS, SUMMARY_REQUESTS
+)
 
 logger = logging.getLogger('uvicorn.error')
 logger.setLevel(logging.DEBUG)
 
 app = FastAPI()
+
+# Add Prometheus middleware
+app.add_middleware(PrometheusMiddleware)
+app.add_route("/metrics", metrics)
 
 app.add_middleware(
     CORSMiddleware,
@@ -40,6 +51,15 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Add request monitoring middleware
+@app.middleware("http")
+async def monitoring_middleware(request: Request, call_next):
+    return await monitor_request(request, call_next)
+
+# Start system metrics update thread
+metrics_thread = threading.Thread(target=update_system_metrics, daemon=True)
+metrics_thread.start()
 
 # OAuth2 scheme
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
@@ -134,9 +154,11 @@ async def upload_file(
         if not success:
             raise HTTPException(status_code=500, detail=message)
         
+        UPLOAD_COUNT.labels(status="success").inc()
         return {"message": "File processed successfully"}
     
     except Exception as e:
+        UPLOAD_COUNT.labels(status="error").inc()
         logger.error(f"Error in upload endpoint: {str(e)}", exc_info=True)
         # Clean up temporary file if it exists
         if os.path.exists(file_path):
@@ -196,6 +218,7 @@ async def summarize_document(
     success, result = generate_summary(full_text, current_user["_id"])
     if not success:
         raise HTTPException(status_code=429, detail=result)
+    SUMMARY_REQUESTS.labels(status="success").inc()
     return {"summary": result}
 
 @app.get("/paragraph-summaries/{filename}")
@@ -226,6 +249,7 @@ async def chat_with_document(
     success, result = generate_chat_response(request.query, similar_chunks, str(current_user["_id"]))
     if not success:
         raise HTTPException(status_code=429, detail=result)
+    CHAT_REQUESTS.labels(status="success").inc()
     return {"response": result}
 
 @app.get("/serve-pdf/{filename}")
