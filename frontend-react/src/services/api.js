@@ -71,8 +71,8 @@ export const documents = {
     return response.data;
   },
 
-  getParagraphSummaries: async (filename) => {
-    const response = await api.get(`/paragraph-summaries/${filename}`);
+  extractClauses: async (filename) => {
+    const response = await api.get(`/clauses/${filename}`);
     return response.data;
   },
 

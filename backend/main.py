@@ -14,7 +14,6 @@ from fastapi.responses import StreamingResponse
 import sys
 import httpx
 from io import BytesIO
-
 from database import (
     create_user, verify_user, create_access_token,
     save_document, get_user_documents, get_document_by_filename,
@@ -22,8 +21,7 @@ from database import (
     users_collection
 )
 from document_processor import (
-    extract_text_from_pdf, chunk_text, generate_embeddings,
-    generate_summary, generate_paragraph_summaries, generate_chat_response,
+    extract_text_from_pdf, chunk_text, generate_embeddings, generate_summary, extract_clauses, generate_chat_response,
     get_similar_chunks
 )
 from cloud_storage import (upload_file_to_cloud, get_file, delete_file, get_pdf_url)
@@ -121,15 +119,18 @@ async def upload_file(
         upload_result = upload_file_to_cloud(file.file, public_id)
         if not upload_result:
             raise HTTPException(status_code=500, detail="Failed to upload file to cloud storage")
-
+        result, clause_list = extract_clauses(text, str(current_user["_id"]))
+        logger.debug(clause_list)
         # Save document to database
-        success, message = save_document(
-            current_user["_id"],
-            file.filename,
-            chunks,
-            embeddings,
-            file.file  # Pass the file object for GridFS
-        )
+        if clause_list:
+            success, message = save_document(
+                current_user["_id"],
+                file.filename,
+                clause_list,
+                chunks,
+                embeddings,
+                file.file  # Pass the file object for GridFS
+            )
         
         if not success:
             raise HTTPException(status_code=500, detail=message)
@@ -181,36 +182,44 @@ async def get_document(filename: str, current_user: dict = Depends(get_current_u
     except Exception as e:
         logger.debug(e)
 
-    #return FileResponse(path=pdf_path, media_type="application/pdf", filename="Report.pdf")
-
 @app.post("/summarize/{filename}")
 async def summarize_document(
     filename: str,
     current_user: dict = Depends(get_current_user)
 ):
-    document = get_document_by_filename(filename)
-    if not document or document["user_id"] != current_user["_id"]:
-        raise HTTPException(status_code=404, detail="Document not found")
     
-    full_text = " ".join(document["chunks"])
-    success, result = generate_summary(full_text, current_user["_id"])
-    if not success:
-        raise HTTPException(status_code=429, detail=result)
-    return {"summary": result}
+    document = get_document_by_filename(filename)
+    if not document or document["user_id"] != str(current_user["_id"]):
+        raise HTTPException(status_code=404, detail="Document not found")
+    #return {"summary" : document["clauses"]}
+    #cls = document["clauses"]
+    # full_text = " ".join(document["chunks"])
+    # success, result = generate_summary(full_text, current_user["_id"])
+    # if not success:
+    #     raise HTTPException(status_code=429, detail=result)
+    #result = generate_summary(full_text)
+    
+    # logger.debug(result)
+    return document['clauses']
 
-@app.get("/paragraph-summaries/{filename}")
+@app.get("/clauses/{filename}")
 async def get_paragraph_summaries(
     filename: str,
     current_user: dict = Depends(get_current_user)
 ):
+    # document = get_document_by_filename(filename)
+    # if not document or document["user_id"] != current_user["_id"]:
+    #     raise HTTPException(status_code=404, detail="Document not found")
+    
+    # success, summaries, message = generate_paragraph_summaries(document["chunks"], current_user["_id"])
+    # if not success:
+    #     raise HTTPException(status_code=429, detail=message)
+    # return {"summaries": summaries}
     document = get_document_by_filename(filename)
-    if not document or document["user_id"] != current_user["_id"]:
+    if not document or document["user_id"] != str(current_user["_id"]):
         raise HTTPException(status_code=404, detail="Document not found")
     
-    success, summaries, message = generate_paragraph_summaries(document["chunks"], current_user["_id"])
-    if not success:
-        raise HTTPException(status_code=429, detail=message)
-    return {"summaries": summaries}
+    return {"clauses" :document['clauses']}
 
 @app.post("/chat/{filename}")
 async def chat_with_document(
