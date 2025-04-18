@@ -7,7 +7,6 @@ import Signup from './components/Auth/Signup';
 import DocumentList from './components/Document/DocumentList';
 import DocumentViewer from './components/Document/DocumentViewer';
 import LandingPage from './components/Landing/LandingPage';
-import InfoCardList from './components/InfoCardList';
 // Create a theme instance
 const theme = createTheme({
   palette: {
@@ -69,31 +68,12 @@ const AppContent = () => {
 };
 
 function App() {
-  const data = [
-    {
-      title: 'Nhà nước là gì?',
-      content: 'Nhà nước là một tổ chức chính trị, xã hội có quyền lực tối cao trong phạm vi lãnh thổ nhất định và có vai trò điều hành, quản lý xã hội, duy trì trật tự và bảo vệ quyền lợi chung của mọi công dân.',
-    },
-    {
-      title: 'Pháp luật là gì?',
-      content: 'Pháp luật là một hệ thống các quy định được nhà nước ban hành hoặc thừa nhận, nhằm điều chỉnh các quan hệ xã hội, đảm bảo trật tự, công lý và bảo vệ quyền lợi của người dân.',
-    },
-    {
-      title: 'Các hình thức vi phạm pháp luật',
-      content: 'Vi phạm pháp luật có thể xảy ra dưới nhiều hình thức, bao gồm vi phạm hành chính, vi phạm hình sự, hoặc các hành vi trái pháp luật khác ảnh hưởng đến trật tự xã hội.',
-    },
-    {
-      title: 'Trách nhiệm pháp lý là gì?',
-      content: 'Trách nhiệm pháp lý là nghĩa vụ của cá nhân hoặc tổ chức phải chịu các hình thức xử lý khi có hành vi vi phạm pháp luật, từ đó đảm bảo sự công bằng và trật tự trong xã hội.',
-    },
-  ];
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <AuthProvider>
         <Router>
           <AppContent />
-          {/* <InfoCardList data={data} /> */}
         </Router>
       </AuthProvider>
     </ThemeProvider>

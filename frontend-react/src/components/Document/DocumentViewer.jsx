@@ -25,7 +25,6 @@ import { ExpandMore as ExpandMoreIcon, Send as SendIcon } from '@mui/icons-mater
 import { Document, Page, pdfjs } from 'react-pdf';
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
 import 'react-pdf/dist/esm/Page/TextLayer.css';
-import InfoCardList from '../InfoCardList';
 
 // Set up PDF.js worker
 pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.mjs`;
@@ -194,7 +193,7 @@ const DocumentViewer = () => {
           <Paper sx={{ p: 2, height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
             <Tabs value={activeTab} onChange={handleTabChange} sx={{ width: '100%', display: 'flex', gap: 2 }} >
               <Tab label="Tóm tắt tài liệu" sx={{ flexGrow: 1, textAlign: 'center' }} />
-              <Tab label="Tóm tắt từng đoạn" sx={{ flexGrow: 1, textAlign: 'center' }} />
+              <Tab label="Các điều khoản/quy định" sx={{ flexGrow: 1, textAlign: 'center' }} />
               <Tab label="Hỏi đáp" sx={{ flexGrow: 1, textAlign: 'center' }} />
             </Tabs>
 
