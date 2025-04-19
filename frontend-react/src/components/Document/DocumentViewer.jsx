@@ -30,7 +30,7 @@ import 'react-pdf/dist/esm/Page/TextLayer.css';
 pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.mjs`;
 
 const DocumentViewer = () => {
-  const { filename } = useParams();
+  const { filename, documentId } = useParams();
   const navigate = useNavigate();
   const [document, setDocument] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -38,22 +38,21 @@ const DocumentViewer = () => {
   const [activeTab, setActiveTab] = useState(0);
   const [numPages, setNumPages] = useState(null);
   const [pageNumber, setPageNumber] = useState(1);
-  const [summary, setSummary] = useState('');
-  const [paragraphSummaries, setParagraphSummaries] = useState([]);
+  const [summary, setSummary] = useState(null);
+  const [clauseList, setClauseList] = useState([]);
   const [chatQuery, setChatQuery] = useState('');
   const [chatMessages, setChatMessages] = useState([]);
   const [chatLoading, setChatLoading] = useState(false);
-  const [PDFUrl, setPDFUrl] = useState('');
 
   useEffect(() => {
     fetchDocument();
   }, [filename]);
-
+  
   const fetchDocument = async () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
-      const res = await fetch(`http://localhost:8000/document/${filename}`, {
+      const res = await fetch(`http://localhost:8000/document/${filename}/${documentId}`, {
         headers: {
           Authorization: `Bearer ${token}`
         }
@@ -74,18 +73,22 @@ const DocumentViewer = () => {
   };
 
   const handleTabChange = async (event, newValue) => {
+    console.log("tab changed");
+    console.log(newValue);
+    console.log(clauseList.length);
     setActiveTab(newValue);
-    if (newValue === 1 && !summary) {
+    
+    if (newValue === 0 && !summary) {
       try {
-        const data = await documents.getSummary(filename);
+        const data = await documents.getSummary(filename, documentId);
         setSummary(data.summary);
       } catch (err) {
         setError('Failed to fetch summary');
       }
-    } else if (newValue === 2 && paragraphSummaries.length === 0) {
+    } else if (newValue === 1 && clauseList.length === 0) {
       try {
-        const data = await documents.getParagraphSummaries(filename);
-        setParagraphSummaries(data.summaries);
+        const data = await documents.extractClauses(filename, documentId);
+        setClauseList(data.clauses);
       } catch (err) {
         setError('Failed to fetch paragraph summaries');
       }
@@ -97,7 +100,7 @@ const DocumentViewer = () => {
 
     setChatLoading(true);
     try {
-      const data = await documents.chat(filename, chatQuery);
+      const data = await documents.chat(filename, documentId, chatQuery);
       setChatMessages(prev => [...prev, 
         { type: 'user', content: chatQuery },
         { type: 'assistant', content: data.response }
@@ -128,7 +131,7 @@ const DocumentViewer = () => {
   }
 
   return (
-    <Container maxWidth="xl" sx={{ mt: 12, mb: 12 }}>
+    <Container  maxWidth={false} sx={{ mt: 6, mb: 12 }}>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={4}>
         <Typography variant="h4" component="h1">
           {filename}
@@ -144,8 +147,8 @@ const DocumentViewer = () => {
         </Alert>
       )}
 
-      <Grid container spacing={3}>
-        <Grid item xs={12} md={8}> 
+      <Grid justifyContent="center" container spacing={3} sx={{ width: '100%' }} >
+        <Grid item xs={12} md={6}> 
           <Paper sx={{ p: 2, height: '100%', display: 'flex', flexDirection: 'column' }}>
             <Document
               file={document}
@@ -158,7 +161,8 @@ const DocumentViewer = () => {
             >
               <Page
                 pageNumber={pageNumber}
-                width={500}
+                // width={500}
+                scale={1.3}
                 renderTextLayer={false}
                 renderAnnotationLayer={false}
               />
@@ -185,28 +189,29 @@ const DocumentViewer = () => {
           </Paper>
         </Grid>
 
-        <Grid item xs={12} md={8}>
-          <Paper sx={{ p: 2, height: '100%', display: 'flex', flexDirection: 'column' }}>
-            <Tabs value={activeTab} onChange={handleTabChange}>
-              <Tab label="Tóm tắt tài liệu" />
-              <Tab label="Tóm tắt từng đoạn" />
-              <Tab label="Hỏi đáp" />
+        <Grid item xs={12} md={6} sx={{ flex: 1}}>
+          <Paper sx={{ p: 2, height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
+            <Tabs value={activeTab} onChange={handleTabChange} sx={{ width: '100%', display: 'flex', gap: 2 }} >
+              <Tab label="Tóm tắt tài liệu" sx={{ flexGrow: 1, textAlign: 'center' }} />
+              <Tab label="Các điều khoản/quy định" sx={{ flexGrow: 1, textAlign: 'center' }} />
+              <Tab label="Hỏi đáp" sx={{ flexGrow: 1, textAlign: 'center' }} />
             </Tabs>
 
-            <Box sx={{ mt: 2, flex: 1, display: 'flex', flexDirection: 'column' }}>
+            <Box sx={{ mt: 2, flex: 1, display: 'flex', flexDirection: 'column', width: '100%'}}>
               {activeTab === 0 && (
+                // <InfoCardList data = {summary}/>
                 <Typography sx={{ flex: 1 }}>{summary || 'Loading summary...'}</Typography>
               )}
 
               {activeTab === 1 && (
-                <Box sx={{ flex: 1, overflow: 'auto' }}>
-                  {paragraphSummaries.map((summary, index) => (
-                    <Accordion key={index}>
+                <Box sx={{ flex: 1, overflow: 'auto' ,maxWidth: '100%' }}>
+                  {clauseList.map((clause, index) => (
+                    <Accordion key={clause.title} sx={{ width: '100%' }}>
                       <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                        <Typography>Paragraph {index + 1}</Typography>
+                        <Typography> {clause.title}  </Typography>
                       </AccordionSummary>
                       <AccordionDetails>
-                        <Typography>{summary}</Typography>
+                        <Typography style={{ whiteSpace: 'pre-line' }}> {clause.content} </Typography>
                       </AccordionDetails>
                     </Accordion>
                   ))}

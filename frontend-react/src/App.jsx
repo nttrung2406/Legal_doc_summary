@@ -7,7 +7,6 @@ import Signup from './components/Auth/Signup';
 import DocumentList from './components/Document/DocumentList';
 import DocumentViewer from './components/Document/DocumentViewer';
 import LandingPage from './components/Landing/LandingPage';
-
 // Create a theme instance
 const theme = createTheme({
   palette: {
@@ -56,7 +55,7 @@ const AppContent = () => {
           }
         />
         <Route
-          path="/document/:filename"
+          path="/document/:filename/:documentId"
           element={
             <ProtectedRoute>
               <DocumentViewer />

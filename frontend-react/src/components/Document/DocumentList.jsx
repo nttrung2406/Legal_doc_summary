@@ -110,7 +110,7 @@ const DocumentList = () => {
                   boxShadow: 6,
                 },
               }}
-              onClick={() => navigate(`/document/${doc.filename}`)}
+              onClick={() => navigate(`/document/${doc.filename}/${doc.id}`)}
             >
               <CardContent>
                 <Typography variant="h6" component="h2" gutterBottom>
