@@ -100,7 +100,7 @@ const DocumentViewer = () => {
 
     setChatLoading(true);
     try {
-      const data = await documents.chat(filename, chatQuery);
+      const data = await documents.chat(filename, documentId, chatQuery);
       setChatMessages(prev => [...prev, 
         { type: 'user', content: chatQuery },
         { type: 'assistant', content: data.response }

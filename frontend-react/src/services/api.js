@@ -81,8 +81,8 @@ export const documents = {
     return response.data;
   },
 
-  chat: async (filename, query) => {
-    const response = await api.post(`/chat/${filename}`, { query });
+  chat: async (filename, documentId, query) => {
+    const response = await api.post(`/chat/${filename}/${documentId}`, { query });
     return response.data;
   },
 };

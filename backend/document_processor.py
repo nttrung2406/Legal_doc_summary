@@ -23,12 +23,12 @@ load_dotenv()
 
 nltk.download('punkt')
 
-GEMINI_API_KEY_SUMMARY = os.getenv("GEMINI_API_KEY_SUMMARY")
-genai.configure(api_key=GEMINI_API_KEY_SUMMARY)
+GEMINI_API_KEY_1 = os.getenv("GEMINI_API_KEY_1")
+genai.configure(api_key=GEMINI_API_KEY_1)
 model_1 = genai.GenerativeModel('gemini-1.5-pro')
 
-GEMINI_API_KEY_CLAUSE = os.getenv("GEMINI_API_KEY_CLAUSE")
-genai.configure(api_key=GEMINI_API_KEY_CLAUSE)
+GEMINI_API_KEY_2 = os.getenv("GEMINI_API_KEY_2")
+genai.configure(api_key=GEMINI_API_KEY_2)
 model_2 = genai.GenerativeModel('gemini-1.5-pro')
 
 tokenizer = AutoTokenizer.from_pretrained('sentence-transformers/all-MiniLM-L6-v2')

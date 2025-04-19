@@ -221,13 +221,14 @@ async def get_paragraph_summaries(
     
     return {"clauses" :document['clauses']}
 
-@app.post("/chat/{filename}")
+@app.post("/chat/{filename}/{documentId}")
 async def chat_with_document(
     filename: str,
+    documentId: str,
     request: ChatRequest,
     current_user: dict = Depends(get_current_user)
 ):
-    document = get_document_by_filename(filename)
+    document = get_document_by_id(documentId)
     if not document or str(document["user_id"]) != str(current_user["_id"]):
         raise HTTPException(status_code=404, detail="Document not found")
     
