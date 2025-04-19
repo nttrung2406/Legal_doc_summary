@@ -55,7 +55,7 @@ const AppContent = () => {
           }
         />
         <Route
-          path="/document/:filename"
+          path="/document/:filename/:documentId"
           element={
             <ProtectedRoute>
               <DocumentViewer />

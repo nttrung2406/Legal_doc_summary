@@ -30,7 +30,7 @@ import 'react-pdf/dist/esm/Page/TextLayer.css';
 pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.mjs`;
 
 const DocumentViewer = () => {
-  const { filename } = useParams();
+  const { filename, documentId } = useParams();
   const navigate = useNavigate();
   const [document, setDocument] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -38,7 +38,7 @@ const DocumentViewer = () => {
   const [activeTab, setActiveTab] = useState(0);
   const [numPages, setNumPages] = useState(null);
   const [pageNumber, setPageNumber] = useState(1);
-  const [summary, setSummary] = useState([]);
+  const [summary, setSummary] = useState(null);
   const [clauseList, setClauseList] = useState([]);
   const [chatQuery, setChatQuery] = useState('');
   const [chatMessages, setChatMessages] = useState([]);
@@ -52,7 +52,7 @@ const DocumentViewer = () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
-      const res = await fetch(`http://localhost:8000/document/${filename}`, {
+      const res = await fetch(`http://localhost:8000/document/${filename}/${documentId}`, {
         headers: {
           Authorization: `Bearer ${token}`
         }
@@ -80,14 +80,14 @@ const DocumentViewer = () => {
     
     if (newValue === 0 && !summary) {
       try {
-        const data = await documents.getSummary(filename);
-        setSummary(data);
+        const data = await documents.getSummary(filename, documentId);
+        setSummary(data.summary);
       } catch (err) {
         setError('Failed to fetch summary');
       }
     } else if (newValue === 1 && clauseList.length === 0) {
       try {
-        const data = await documents.extractClauses(filename);
+        const data = await documents.extractClauses(filename, documentId);
         setClauseList(data.clauses);
       } catch (err) {
         setError('Failed to fetch paragraph summaries');

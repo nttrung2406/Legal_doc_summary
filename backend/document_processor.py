@@ -23,9 +23,13 @@ load_dotenv()
 
 nltk.download('punkt')
 
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-genai.configure(api_key=GEMINI_API_KEY)
-model = genai.GenerativeModel('gemini-1.5-pro')
+GEMINI_API_KEY_SUMMARY = os.getenv("GEMINI_API_KEY_SUMMARY")
+genai.configure(api_key=GEMINI_API_KEY_SUMMARY)
+model_1 = genai.GenerativeModel('gemini-1.5-pro')
+
+GEMINI_API_KEY_CLAUSE = os.getenv("GEMINI_API_KEY_CLAUSE")
+genai.configure(api_key=GEMINI_API_KEY_CLAUSE)
+model_2 = genai.GenerativeModel('gemini-1.5-pro')
 
 tokenizer = AutoTokenizer.from_pretrained('sentence-transformers/all-MiniLM-L6-v2')
 embedding_model = AutoModel.from_pretrained('sentence-transformers/all-MiniLM-L6-v2')
@@ -120,75 +124,14 @@ def generate_summary(text: str, user_id: str) -> Tuple[bool, str]:
     
     prompt = f"""Bạn là một trợ lý AI chuyên về các văn bản pháp luật và pháp lý như là bộ luật, hợp đồng, nội quy, thể lệ, điều khoản và điều kiện sử dụng... Hãy tóm tắt **ngữ cảnh được cung cấp** bên dưới một cách chính xác nhất có thể.
 
-    Cung cấp tóm tắt trong các gạch đầu dòng được lồng trong tiêu đề theo dạng XML cho từng phần. Ví dụ:
+    Cung cấp một bản tóm tắt tổng quan giúp người đọc nắm được các thông tin quan trọng của văn bản pháp lý, pháp luật dưới đây. Bản tóm tắt phải ngắn gọn và cung cấp đầy đủ các thông tin cơ bản của tài liệu pháp lý/pháp luật. Không dùng lời mở đầu. 
 
-    <Cac_ben_lien_quan>
-    - Bên cho thuê lại: [Tên]
-    // Thêm thông tin chi tiết khi cần
-    </Cac_ben_lien_quan>
-
-    Nếu bất kỳ thông tin nào không được nêu rõ trong tài liệu, hãy ghi chú là "Không nêu rõ". Không dùng lời mở đầu.
-
-    Văn bản pháp lý:
+    Văn bản pháp lý/pháp luật:
     {text}
     """
-    response = model.generate_content(prompt)
-    pattern = r'</\w+>'
-    tags = re.findall(pattern, response.text)
-    tags.append("```xml")
-    tags.append("```")
-    pattern = '|'.join(map(re.escape, tags))
-    clauses = re.split(pattern, response.text)
-    clause_list = list()
-    clause_type = list()
-    for i in range(len(clauses)):
-        pattern = ['\n', '<', '>']
-        pattern = '|'.join(pattern)
-        clauses[i] = re.split(pattern, clauses[i])
-        clauses[i] = [clause for clause in clauses[i] if clause != '']
-        if clauses[i]: 
-            clause_type.append(clauses[i][0])
-            clause_dict = dict()
-            clause_dict["title"] = clauses[i][0].replace('_',' ')
-            clause_dict["content"] = '\n'.join(clauses[i][1:])
-            #clause_dict = {clauses[i][0].replace('_',' '): clauses[i][1:]}
-            clause_list.append(clause_dict)
-
-    clause_type = '\n'.join(clause_type)
-    prompt_2 = f"""Bạn là một trợ lý AI chuyên về xử lý ngôn ngữ tiếng Việt. Hãy **thêm dấu cho các từ tiếng Việt** bên dưới.
-
-    Các từ đã thêm dấu được lồng trong tiêu đề theo dạng XML. Ví dụ:
-
-    <Cac_ben_lien_quan>
-    Các bên liên quan 
-    </Cac_ben_lien_quan>
-
-    Không sử dụng lời mở đầu trong phản hồi
-
-    Danh sách các từ không có dấu cần được thêm dấu:
-    {clause_type}
-    """
-    response_2 = model.generate_content(prompt_2)
-   
-    print(response_2.text)
-    pattern = r'</\w+>'
-    tags = re.findall(pattern, response_2.text)
-    tags.append("```xml")
-    tags.append("```")
-    tags.append('\n')
-    pattern = r'<\w+>'
-    tags_2 = re.findall(pattern, response_2.text)
+    response = model_2.generate_content(prompt)
     
-    pattern = '|'.join(map(re.escape, tags + tags_2))
-    clause_type = re.split(pattern, response_2.text)
-    clause_type = [ct for ct in clause_type if ct != '']
-
-    for d, ct in zip(clause_list, clause_type):
-        d["title"] = ct 
-    #clause_list = [{k: list(d.values())[0]} for k, d in zip(clause_type, clause_list)]
-
-    update_api_usage(user_id)
-    return True, clause_list
+    return True, response.text
 
 def extract_clauses(text:str, user_id: str) -> Tuple[bool, List[str]]:
     """Generate summaries for each paragraph with rate limiting."""
@@ -218,12 +161,12 @@ def extract_clauses(text:str, user_id: str) -> Tuple[bool, List[str]]:
     // Thêm thông tin chi tiết khi cần
     </Cac_ben_lien_quan>
 
-    Nếu bất kỳ thông tin nào không được nêu rõ trong tài liệu, hãy ghi chú là "Không nêu rõ". Không dùng lời mở đầu.
+    Nếu bất kỳ thông tin nào không được nêu rõ trong tài liệu, hãy ghi chú là "Không nêu rõ". Không sử dụng lời mở đầu trong phản hồi.
 
     Văn bản pháp lý:
     {text}
     """
-    response = model.generate_content(prompt)
+    response = model_1.generate_content(prompt)
     pattern = r'</\w+>'
     tags = re.findall(pattern, response.text)
     tags.append("```xml")
@@ -245,7 +188,11 @@ def extract_clauses(text:str, user_id: str) -> Tuple[bool, List[str]]:
             #clause_dict = {clauses[i][0].replace('_',' '): clauses[i][1:]}
             clause_list.append(clause_dict)
 
+    can_proceed, message = check_api_usage(user_id)
+    if not can_proceed:
+        return False, message
     clause_type = '\n'.join(clause_type)
+
     prompt_2 = f"""Bạn là một trợ lý AI chuyên về xử lý ngôn ngữ tiếng Việt. Hãy **thêm dấu cho các từ tiếng Việt** bên dưới.
 
     Các từ đã thêm dấu được lồng trong tiêu đề theo dạng XML. Ví dụ:
@@ -254,14 +201,13 @@ def extract_clauses(text:str, user_id: str) -> Tuple[bool, List[str]]:
     Các bên liên quan 
     </Cac_ben_lien_quan>
 
-    Không sử dụng lời mở đầu trong phản hồi
+    Không sử dụng lời mở đầu trong phản hồi.
 
     Danh sách các từ không có dấu cần được thêm dấu:
     {clause_type}
     """
-    response_2 = model.generate_content(prompt_2)
+    response_2 = model_1.generate_content(prompt_2)
    
-    print(response_2.text)
     pattern = r'</\w+>'
     tags = re.findall(pattern, response_2.text)
     tags.append("```xml")
@@ -312,6 +258,6 @@ def generate_chat_response(query: str, context_chunks: List[str], user_id: str) 
     """
 
 
-    response = model.generate_content(prompt)
+    response = model_2.generate_content(prompt)
     update_api_usage(user_id)
     return True, response.text 
