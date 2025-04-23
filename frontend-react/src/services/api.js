@@ -61,23 +61,28 @@ export const documents = {
     return response.data;
   },
 
-  get: async (filename) => {
-    const response = await api.get(`/document/${filename}`);
+  get: async (filename, documentId) => {
+    const response = await api.get(`/document/${filename}/${documentId}`);
     return response.data;
   },
 
-  getSummary: async (filename) => {
-    const response = await api.post(`/summarize/${filename}`);
+  getSummary: async (filename, documentId) => {
+    try {
+      const response = await api.post(`/summarize/${filename}/${documentId}`);
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching summary:", error);
+      throw error;
+    }
+  },
+
+  extractClauses: async (filename, documentId) => {
+    const response = await api.get(`/clauses/${filename}/${documentId}`);
     return response.data;
   },
 
-  getParagraphSummaries: async (filename) => {
-    const response = await api.get(`/paragraph-summaries/${filename}`);
-    return response.data;
-  },
-
-  chat: async (filename, query) => {
-    const response = await api.post(`/chat/${filename}`, { query });
+  chat: async (filename, documentId, query) => {
+    const response = await api.post(`/chat/${filename}/${documentId}`, { query });
     return response.data;
   },
 };

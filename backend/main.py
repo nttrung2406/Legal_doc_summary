@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, StreamingResponse, JSONResponse
 from datetime import timedelta
 import shutil
+import time
 import os
 from typing import List
 import json
@@ -20,13 +21,12 @@ from starlette_prometheus import metrics, PrometheusMiddleware
 
 from database import (
     create_user, verify_user, create_access_token,
-    save_document, get_user_documents, get_document_by_filename,
+    save_document, get_user_documents, get_document_by_filename, get_document_by_id,
     SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES,
     users_collection
 )
 from document_processor import (
-    extract_text_from_pdf, chunk_text, generate_embeddings,
-    generate_summary, generate_paragraph_summaries, generate_chat_response,
+    extract_text_from_pdf, chunk_text, generate_embeddings, generate_summary, extract_clauses, generate_chat_response,
     get_similar_chunks
 )
 from cloud_storage import (upload_file_to_cloud, get_file, delete_file, get_pdf_url)
@@ -141,17 +141,28 @@ async def upload_file(
         upload_result = upload_file_to_cloud(file.file, public_id)
         if not upload_result:
             raise HTTPException(status_code=500, detail="Failed to upload file to cloud storage")
-
+        result1, clause_list = extract_clauses(text, str(current_user["_id"]))
+        time.sleep(10)
+        result2, summary = generate_summary(text, str(current_user["_id"])) 
+        print(summary)
+        logger.debug(clause_list)
         # Save document to database
-        success, message = save_document(
-            current_user["_id"],
-            file.filename,
-            chunks,
-            embeddings,
-            file.file  # Pass the file object for GridFS
-        )
+        success = None
+        message = None
+        if result1 and result2:
+            success, message = save_document(
+                current_user["_id"],
+                file.filename,
+                summary,
+                clause_list,
+                chunks,
+                embeddings,
+                file.file  # Pass the file object for GridFS
+            )
         
         if not success:
+            if (public_id):
+                delete_file(public_id)
             raise HTTPException(status_code=500, detail=message)
         
         UPLOAD_COUNT.labels(status="success").inc()
@@ -160,6 +171,8 @@ async def upload_file(
     except Exception as e:
         UPLOAD_COUNT.labels(status="error").inc()
         logger.error(f"Error in upload endpoint: {str(e)}", exc_info=True)
+        if (public_id):
+                delete_file(public_id)
         # Clean up temporary file if it exists
         if os.path.exists(file_path):
             os.remove(file_path)
@@ -173,10 +186,10 @@ async def upload_file(
 @app.get("/documents")
 async def get_documents(current_user: dict = Depends(get_current_user)):
     documents = get_user_documents(current_user["_id"])
-    return [{"filename": doc["filename"], "created_at": doc["created_at"]} for doc in documents]
+    return [{"id": str(doc["_id"]),"filename": doc["filename"], "created_at": doc["created_at"]} for doc in documents]
 
-@app.get("/document/{filename}")
-async def get_document(filename: str, current_user: dict = Depends(get_current_user)):
+@app.get("/document/{filename}/{documentId}")
+async def get_document(filename: str, documentId: str, current_user: dict = Depends(get_current_user)):
     # document = get_document_by_filename(filename)
     # if not document or str(document["user_id"]) != str(current_user["_id"]):
     #     raise HTTPException(status_code=404, detail="Document not found")
@@ -203,11 +216,10 @@ async def get_document(filename: str, current_user: dict = Depends(get_current_u
     except Exception as e:
         logger.debug(e)
 
-    #return FileResponse(path=pdf_path, media_type="application/pdf", filename="Report.pdf")
-
-@app.post("/summarize/{filename}")
+@app.post("/summarize/{filename}/{documentId}")
 async def summarize_document(
     filename: str,
+    documentId: str,
     current_user: dict = Depends(get_current_user)
 ):
     document = get_document_by_filename(filename)
@@ -221,27 +233,26 @@ async def summarize_document(
     SUMMARY_REQUESTS.labels(status="success").inc()
     return {"summary": result}
 
-@app.get("/paragraph-summaries/{filename}")
+@app.get("/clauses/{filename}/{documentId}")
 async def get_paragraph_summaries(
     filename: str,
+    documentId: str,
     current_user: dict = Depends(get_current_user)
 ):
-    document = get_document_by_filename(filename)
-    if not document or document["user_id"] != current_user["_id"]:
+    document = get_document_by_id(documentId)
+    if not document or document["user_id"] != str(current_user["_id"]):
         raise HTTPException(status_code=404, detail="Document not found")
     
-    success, summaries, message = generate_paragraph_summaries(document["chunks"], current_user["_id"])
-    if not success:
-        raise HTTPException(status_code=429, detail=message)
-    return {"summaries": summaries}
+    return {"clauses" :document['clauses']}
 
-@app.post("/chat/{filename}")
+@app.post("/chat/{filename}/{documentId}")
 async def chat_with_document(
     filename: str,
+    documentId: str,
     request: ChatRequest,
     current_user: dict = Depends(get_current_user)
 ):
-    document = get_document_by_filename(filename)
+    document = get_document_by_id(documentId)
     if not document or str(document["user_id"]) != str(current_user["_id"]):
         raise HTTPException(status_code=404, detail="Document not found")
     

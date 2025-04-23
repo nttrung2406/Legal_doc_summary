@@ -127,7 +127,7 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
-def save_document(user_id: str, filename: str, chunks: list, embeddings: list, pdf_file):
+def save_document(user_id: str, filename: str, summary: str, clauses: list, chunks: list, embeddings: list, pdf_file):
     try:
         # Save PDF to GridFS
         pdf_id = fs.put(pdf_file, filename=filename)
@@ -135,6 +135,8 @@ def save_document(user_id: str, filename: str, chunks: list, embeddings: list, p
         document = {
             "user_id": user_id,
             "filename": filename,
+            "summary": summary,
+            "clauses": clauses,
             "chunks": chunks,
             "embeddings": embeddings,
             "pdf_id": str(pdf_id),  # Convert ObjectId to string
@@ -169,6 +171,30 @@ def get_document_by_filename(filename: str):
     
     print(f"Found document!!!!")
     # Convert ObjectId to string and datetime to ISO format
+    # print("hehe:", document["clauses"])
+    document['_id'] = str(document['_id'])
+    document['user_id'] = str(document['user_id'])
+    if 'created_at' in document:
+        document['created_at'] = document['created_at'].isoformat() if isinstance(document['created_at'], (datetime, date)) else document['created_at']
+    return document
+
+def get_document_by_id(id):
+    print(f"Looking for document with id: {id}")
+    object_id = None
+    try:
+        object_id = ObjectId(id)
+    except Exception as e:
+        print(f"Invalid ObjectId format: {e}")
+        return None
+    document = documents_collection.find_one({"_id": object_id})
+
+    if not document:
+        print("No document found")
+        return None
+    
+    print(f"Found document!!!!")
+    # Convert ObjectId to string and datetime to ISO format
+    # print("hehe:", document["clauses"])
     document['_id'] = str(document['_id'])
     document['user_id'] = str(document['user_id'])
     if 'created_at' in document:
@@ -181,3 +207,4 @@ def get_pdf_file(pdf_id):
         return fs.get(ObjectId(pdf_id))
     except:
         return None
+
