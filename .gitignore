@@ -174,3 +174,4 @@ cython_debug/
 .pypirc
 frontend-react/package-lock.json
 /data
+*.dump

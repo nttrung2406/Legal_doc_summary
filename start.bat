@@ -18,10 +18,10 @@ if errorlevel 1 (
 )
 
 :: Check if backend dependencies are installed
-echo Installing backend dependencies...
+@REM echo Installing backend dependencies...
 @REM cd backend
 @REM pip install -r requirements.txt
-cd ..
+@REM cd ..
 
 :: Check if node_modules exists
 if not exist "frontend-react\node_modules" (
@@ -30,7 +30,6 @@ if not exist "frontend-react\node_modules" (
     npm install
     cd ..
 )
-
 set RABBITMQ_PATH="E:\RabbitMQ_Server\rabbitmq_server-4.0.5\sbin\rabbitmq-server.bat"
 set RABBITMQ_CTL="E:\RabbitMQ_Server\rabbitmq_server-4.0.5\sbin\rabbitmqctl.bat"
 echo Using RabbitMQ: %RABBITMQ_PATH%
