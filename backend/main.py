@@ -223,16 +223,15 @@ async def summarize_document(
     documentId: str,
     current_user: dict = Depends(get_current_user)
 ):
-    document = get_document_by_filename(filename)
-    if not document or document["user_id"] != current_user["_id"]:
-        raise HTTPException(status_code=404, detail="Document not found")
+     # Lấy tài liệu theo documentId
+    document = get_document_by_id(documentId)
     
-    full_text = " ".join(document["chunks"])
-    success, result = generate_summary(full_text, current_user["_id"])
-    if not success:
-        raise HTTPException(status_code=429, detail=result)
-    SUMMARY_REQUESTS.labels(status="success").inc()
-    return {"summary": result}
+    # Kiểm tra tài liệu và quyền truy cập của người dùng
+    if not document or document["user_id"] != str(current_user["_id"]):
+        raise HTTPException(status_code=404, detail="Document not found or unauthorized")
+    
+    # Trả về summary nếu tài liệu hợp lệ
+    return {"summary": document['summary']}
 
 @app.get("/clauses/{filename}/{documentId}")
 async def get_paragraph_summaries(
