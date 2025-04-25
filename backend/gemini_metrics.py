@@ -50,24 +50,20 @@ class GeminiMetrics:
     def get_metrics_summary() -> Dict[str, Any]:
         """Get summary statistics of metrics."""
         try:
-            # Get total calls
+
             total_calls = gemini_metrics.count_documents({})
-            
-            # Get successful calls
+
             success_calls = gemini_metrics.count_documents({"status": "success"})
-            
-            # Get average latency
+
             avg_latency = gemini_metrics.aggregate([
                 {"$group": {"_id": None, "avg": {"$avg": "$latency"}}}
             ]).next()["avg"]
-            
-            # Get average ROUGE score
+
             avg_rouge = gemini_metrics.aggregate([
                 {"$match": {"metrics.rouge": {"$exists": True}}},
                 {"$group": {"_id": None, "avg": {"$avg": "$metrics.rouge"}}}
             ]).next()["avg"]
-            
-            # Get average METEOR score
+
             avg_meteor = gemini_metrics.aggregate([
                 {"$match": {"metrics.meteor": {"$exists": True}}},
                 {"$group": {"_id": None, "avg": {"$avg": "$metrics.meteor"}}}

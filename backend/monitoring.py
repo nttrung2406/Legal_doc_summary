@@ -70,7 +70,7 @@ def update_system_metrics():
             disk = psutil.disk_usage('/')
             DISK_USAGE.set(disk.used)
             
-            time.sleep(5)  # Update every 5 seconds
+            time.sleep(5) 
         except Exception as e:
             logger.error(f"Error updating system metrics: {str(e)}")
             time.sleep(5)
@@ -85,7 +85,6 @@ async def monitor_request(request: Request, call_next: Callable) -> Response:
         response = await call_next(request)
         status = response.status_code
         
-        # Record request metrics
         REQUEST_COUNT.labels(method=method, endpoint=endpoint, status=status).inc()
         REQUEST_LATENCY.labels(method=method, endpoint=endpoint).observe(time.time() - start_time)
         

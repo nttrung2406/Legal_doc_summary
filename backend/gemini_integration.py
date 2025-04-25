@@ -19,7 +19,6 @@ class GeminiService:
         prompt = f"Please provide a concise summary of the following text:\n\n{text}"
         result = self.monitor.generate_with_metrics(prompt, reference)
         
-        # Save metrics to MongoDB
         GeminiMetrics.save_api_call(
             prompt=prompt,
             response=result["text"],
@@ -41,7 +40,6 @@ class GeminiService:
         """Process a chat message using Gemini with monitoring."""
         result = self.monitor.generate_with_metrics(message)
         
-        # Save metrics to MongoDB
         GeminiMetrics.save_api_call(
             prompt=message,
             response=result["text"],
@@ -58,5 +56,4 @@ class GeminiService:
             "error": result.get("error")
         }
 
-# Initialize the service
 gemini_service = GeminiService() 

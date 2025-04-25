@@ -42,7 +42,6 @@ logger.setLevel(logging.DEBUG)
 
 app = FastAPI()
 
-# Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -124,19 +123,15 @@ async def upload_file(
     file_path = os.path.join(UPLOAD_DIR, file_name)
     
     try:
-        # Save the file temporarily
         with open(file_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
         
-        # Reset file pointer for later use
         file.file.seek(0)
         
-        # Extract text and process document
         text = extract_text_from_pdf(file_path)
         chunks = chunk_text(text)
         embeddings = generate_embeddings(chunks)
 
-        # Create public_id for Cloudinary
         public_id = current_user_id + "_" + file_name
         logger.debug(f"Uploading to Cloudinary with public_id: {public_id}")
         
@@ -310,7 +305,6 @@ async def chat(message: str = Form(...)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-# Add Gemini metrics endpoints
 @app.get("/api/gemini/metrics/recent")
 async def get_recent_metrics(limit: int = 100):
     """Get recent Gemini API metrics."""
