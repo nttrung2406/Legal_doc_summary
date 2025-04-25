@@ -21,7 +21,7 @@ A web application that helps users analyze and understand legal documents using 
 
 ## Workflow
 
-![image](https://github.com/nttrung2406/Legal_doc_summary/blob/main/pipeline.jpg?raw=true)
+![image](https://github.com/user-attachments/assets/67aec777-8a14-47af-be34-8f1468b0da05)
 
 
 ## Setup
