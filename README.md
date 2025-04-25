@@ -1,4 +1,4 @@
-# ReadLaw - Legal Document Summarizer
+# ReadLaw - Legal Document Summarizer and Q&A
 
 A web application that helps users analyze and understand legal documents using AI-powered summarization and chat capabilities.
 
