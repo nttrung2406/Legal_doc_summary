@@ -175,3 +175,11 @@ cython_debug/
 frontend-react/package-lock.json
 /data
 *.dump
+/Grafana/grafana/docs
+/Grafana/grafana/bin
+*.exe
+/Grafana/grafana/npm-artifacts
+/Grafana/grafana/packaging
+/Grafana/grafana/public
+/Grafana/grafana/storybook
+/Grafana/grafana/tools
