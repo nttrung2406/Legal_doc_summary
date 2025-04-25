@@ -23,8 +23,6 @@ def upload_file_to_cloud(file, public_id):
         print("Upload failed:", e)
         return None  
 
-
-# Get 1 (or many) file(s) from Cloudinary with public_id in the array document_ids 
 def get_file(document_id):
     # if (not isinstance(document_ids, list) or len(document_ids) == 0):
     #     return False, "document_ids must be a non-empty array."

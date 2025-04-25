@@ -25,6 +25,7 @@ import { ExpandMore as ExpandMoreIcon, Send as SendIcon } from '@mui/icons-mater
 import { Document, Page, pdfjs } from 'react-pdf';
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
 import 'react-pdf/dist/esm/Page/TextLayer.css';
+import ReactMarkdown from 'react-markdown';
 
 // Set up PDF.js worker
 pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.mjs`;
@@ -113,6 +114,21 @@ const DocumentViewer = () => {
       setChatLoading(false);
     }
   };
+
+  const StyledMarkdown = ({ content }) => (
+    <ReactMarkdown
+      components={{
+        strong: ({ node, ...props }) => (
+          <span style={{ fontWeight: 'bold' }} {...props} />
+        ),
+        li: ({ node, ...props }) => (
+          <li style={{ marginLeft: '20px' }} {...props} />
+        ),
+      }}
+    >
+      {content}
+    </ReactMarkdown>
+  );
 
   if (loading) {
     return (
@@ -219,7 +235,13 @@ const DocumentViewer = () => {
               )}
 
               {activeTab === 2 && (
-                <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', maxWidth: '500px', margin: '0 auto' }}>
+                <Box sx={{ 
+                  display: 'flex', 
+                  flexDirection: 'column', 
+                  height: '100%', 
+                  width: '95%', 
+                  margin: '0 auto' 
+                }}>
                   <List sx={{ flex: 1, overflow: 'auto', mb: 2 }}>
                     {chatMessages.map((message, index) => (
                       <Box key={index}>
@@ -238,10 +260,14 @@ const DocumentViewer = () => {
                               color: message.type === 'user' ? 'white' : 'text.primary'
                             }}
                           >
-                            <ListItemText
-                              primary={message.content}
-                              sx={{ wordBreak: 'break-word' }}
-                            />
+                            {message.type === 'user' ? (
+                              <ListItemText
+                                primary={message.content}
+                                sx={{ wordBreak: 'break-word' }}
+                              />
+                            ) : (
+                              <StyledMarkdown content={message.content} />
+                            )}
                           </Paper>
                         </ListItem>
                         <Divider />

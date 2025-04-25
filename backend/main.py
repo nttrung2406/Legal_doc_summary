@@ -40,9 +40,7 @@ logger.setLevel(logging.DEBUG)
 
 app = FastAPI()
 
-# Add Prometheus middleware
-app.add_middleware(PrometheusMiddleware)
-app.add_route("/metrics", metrics)
+
 
 app.add_middleware(
     CORSMiddleware,
@@ -51,6 +49,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+# Add Prometheus middleware
+app.add_middleware(PrometheusMiddleware)
+app.add_route("/metrics", metrics)
 
 # Add request monitoring middleware
 @app.middleware("http")

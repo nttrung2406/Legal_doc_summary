@@ -18,12 +18,10 @@ if errorlevel 1 (
 )
 
 :: Check if backend dependencies are installed
-if not exist "backend\__pycache__" (
-    echo Installing backend dependencies...
-    cd backend
-    pip install -r requirements.txt
-    cd ..
-)
+@REM echo Installing backend dependencies...
+@REM cd backend
+@REM pip install -r requirements.txt
+@REM cd ..
 
 :: Check if node_modules exists
 if not exist "frontend-react\node_modules" (
@@ -33,21 +31,23 @@ if not exist "frontend-react\node_modules" (
     cd ..
 )
 
-:: Set paths for RabbitMQ and Grafana
-set RABBITMQ_PATH="E:\RabbitMQ_Server\rabbitmq_server-4.0.5\sbin\rabbitmq-server.bat"
-set RABBITMQ_CTL="E:\RabbitMQ_Server\rabbitmq_server-4.0.5\sbin\rabbitmqctl.bat"
-set GRAFANA_PATH="E:\Grafa\grafana\bin\grafana-server.exe"
-set PROMETHEUS_PATH="E:\Prometheus\prometheus.exe"
+set "SCRIPT_DIR=%~dp0"
+set "RABBITMQ_PATH=%SCRIPT_DIR%RabbitMQ_Server\rabbitmq_server-4.0.5\sbin\rabbitmq-server.bat"
+set "RABBITMQ_CTL=%SCRIPT_DIR%RabbitMQ_Server\rabbitmq_server-4.0.5\sbin\rabbitmqctl.bat"
+set "PROMETHEUS_PATH=%SCRIPT_DIR%Prometheus\prometheus.exe"
+set "GRAFANA_HOME=%SCRIPT_DIR%Grafana\grafana"
+set "GRAFANA_PATH=%GRAFANA_HOME%\bin\grafana.exe"
+set "GRAFANA_SV_PATH=%GRAFANA_HOME%\bin\grafana-server.exe"
 
+echo Using RabbitMQ: %RABBITMQ_PATH%
+echo Using Prometheus: %PROMETHEUS_PATH%
+echo Using Grafana: %GRAFANA_SV_PATH%
 
 :: Start RabbitMQ server
 echo Starting RabbitMQ server...
 if exist %RABBITMQ_PATH% (
     start cmd /k %RABBITMQ_PATH%
-) else (
-    echo Warning: RabbitMQ not found at %RABBITMQ_PATH%
-    echo Please install RabbitMQ or update the path in start.bat
-)
+) 
 
 :: Wait for RabbitMQ to start
 timeout /t 5 /nobreak >nul
@@ -60,27 +60,9 @@ start cmd /k "cd backend && celery -A tasks worker --loglevel=info"
 echo Starting Celery beat...
 start cmd /k "cd backend && celery -A tasks beat --loglevel=info"
 
-:: Start Prometheus
-echo Starting Prometheus...
-if exist %PROMETHEUS_PATH% (
-    start cmd /k %PROMETHEUS_PATH% --config.file=backend/prometheus.yml
-) else (
-    echo Warning: Prometheus not found at %PROMETHEUS_PATH%
-    echo Please install Prometheus or update the path in start.bat
-)
-
-:: Start Grafana
-echo Starting Grafana...
-if exist %GRAFANA_PATH% (
-    start cmd /k %GRAFANA_PATH%
-) else (
-    echo Warning: Grafana not found at %GRAFANA_PATH%
-    echo Please install Grafana or update the path in start.bat
-)
-
 :: Start backend server
 echo Starting backend server...
-start cmd /k "cd backend && venv\Scripts\activate && uvicorn main:app --reload"
+start cmd /k "cd backend && uvicorn main:app --reload"
 
 :: Wait a moment to ensure backend starts
 timeout /t 2 /nobreak >nul
@@ -89,14 +71,27 @@ timeout /t 2 /nobreak >nul
 echo Starting frontend server...
 start cmd /k "cd frontend-react && npm run dev"
 
+echo Starting monitoring services...
+
+:: Start Prometheus
+echo Starting Prometheus...
+start cmd /k "%PROMETHEUS_PATH% --config.file=%SCRIPT_DIR%Prometheus\prometheus.yml"
+
+:: Start Grafana
+echo Starting Grafana...
+start cmd /k "cd %GRAFANA_HOME% && call start_grafana.bat"
+
+:: Wait for services to start
+timeout /t 5 /nobreak >nul
+
 echo.
 echo Servers are starting...
 echo RabbitMQ will be available at: http://localhost:15672
-echo Prometheus will be available at: http://localhost:9090
-echo Grafana will be available at: http://localhost:3000
 echo Backend will be available at: http://localhost:8000
 echo Frontend will be available at: http://localhost:5173
+echo Prometheus will be available at: http://localhost:9090
+echo Grafana will be available at: http://localhost:3000
 echo.
 echo Press Ctrl+C in each window to stop the servers.
 echo.
-pause 
+pause
