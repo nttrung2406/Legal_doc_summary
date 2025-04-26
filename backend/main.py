@@ -1,12 +1,12 @@
-from fastapi import FastAPI, UploadFile, File, HTTPException, Depends, Body, Request
+from fastapi import FastAPI, UploadFile, File, HTTPException, Depends, Body, Request, Form
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, StreamingResponse, JSONResponse
+from fastapi.responses import FileResponse, StreamingResponse, JSONResponse, Response
 from datetime import timedelta
 import shutil
 import time
 import os
-from typing import List
+from typing import List, Optional
 import json
 from jose import jwt, JWTError
 from pydantic import BaseModel
@@ -18,6 +18,8 @@ from io import BytesIO
 import threading
 from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
 from starlette_prometheus import metrics, PrometheusMiddleware
+from gemini_integration import gemini_service
+from gemini_metrics import GeminiMetrics
 
 from database import (
     create_user, verify_user, create_access_token,
@@ -40,8 +42,6 @@ logger.setLevel(logging.DEBUG)
 
 app = FastAPI()
 
-
-
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -49,6 +49,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 # Add Prometheus middleware
 app.add_middleware(PrometheusMiddleware)
 app.add_route("/metrics", metrics)
@@ -122,19 +123,15 @@ async def upload_file(
     file_path = os.path.join(UPLOAD_DIR, file_name)
     
     try:
-        # Save the file temporarily
         with open(file_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
         
-        # Reset file pointer for later use
         file.file.seek(0)
         
-        # Extract text and process document
         text = extract_text_from_pdf(file_path)
         chunks = chunk_text(text)
         embeddings = generate_embeddings(chunks)
 
-        # Create public_id for Cloudinary
         public_id = current_user_id + "_" + file_name
         logger.debug(f"Uploading to Cloudinary with public_id: {public_id}")
         
@@ -284,4 +281,43 @@ async def serve_pdf(filename: str, current_user: dict = Depends(get_current_user
             }
         )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error serving PDF: {str(e)}") 
+        raise HTTPException(status_code=500, detail=f"Error serving PDF: {str(e)}")
+
+# Add Gemini endpoints
+@app.post("/api/summarize")
+async def summarize_text(text: str = Form(...), reference: Optional[str] = Form(None)):
+    try:
+        result = await gemini_service.generate_summary(text, reference)
+        if result["status"] == "error":
+            raise HTTPException(status_code=500, detail=result["error"])
+        return JSONResponse(content=result)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/chat")
+async def chat(message: str = Form(...)):
+    try:
+        result = await gemini_service.chat(message)
+        if result["status"] == "error":
+            raise HTTPException(status_code=500, detail=result["error"])
+        return JSONResponse(content=result)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/gemini/metrics/recent")
+async def get_recent_metrics(limit: int = 100):
+    """Get recent Gemini API metrics."""
+    try:
+        metrics = GeminiMetrics.get_recent_metrics(limit)
+        return JSONResponse(content=metrics)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/gemini/metrics/summary")
+async def get_metrics_summary():
+    """Get summary statistics of Gemini API metrics."""
+    try:
+        summary = GeminiMetrics.get_metrics_summary()
+        return JSONResponse(content=summary)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e)) 
