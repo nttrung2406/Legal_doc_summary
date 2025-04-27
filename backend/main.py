@@ -21,9 +21,9 @@ from starlette_prometheus import metrics, PrometheusMiddleware
 
 from database import (
     create_user, verify_user, create_access_token,
-    save_document, get_user_documents, get_document_by_filename, get_document_by_id,
+    save_document, get_user_documents, get_document_by_filename, get_document_by_id, delete_pdf_file,
     SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES,
-    users_collection
+    users_collection, documents_collection
 )
 from document_processor import (
     extract_text_from_pdf, chunk_text, generate_embeddings, generate_summary, extract_clauses, generate_chat_response,
@@ -285,3 +285,19 @@ async def serve_pdf(filename: str, current_user: dict = Depends(get_current_user
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error serving PDF: {str(e)}") 
+@app.delete("/delete/{filename}/{documentId}")
+async def delete_document(
+    filename: str,
+    documentId: str,
+    current_user: dict = Depends(get_current_user)
+):
+    document = get_document_by_id(documentId)
+    result = delete_pdf_file(documentId)
+    if result:
+        publicId = str(current_user["_id"]) + "_" + os.path.splitext(filename)[0]
+        print(publicId)
+        result = delete_file(publicId)
+        return {"response": result}
+    else:
+        result = documents_collection.insert_one(document)
+        return {"response": (False, "An error occured")}

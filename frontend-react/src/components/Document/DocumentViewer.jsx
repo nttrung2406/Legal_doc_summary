@@ -177,14 +177,13 @@ const DocumentViewer = () => {
             >
               <Page
                 pageNumber={pageNumber}
-                // width={500}
                 scale={1.3}
                 renderTextLayer={false}
                 renderAnnotationLayer={false}
-              />
-            </Document>
-            {numPages && (
-              <Box display="flex" justifyContent="center" mt={2}>
+                />
+              </Document>
+              {numPages && (
+                <Box display="flex" justifyContent="center" mt={2}>
                 <Button
                   disabled={pageNumber <= 1}
                   onClick={() => setPageNumber(pageNumber - 1)}
@@ -200,89 +199,92 @@ const DocumentViewer = () => {
                 >
                   Next
                 </Button>
-              </Box>
-            )}
-          </Paper>
-        </Grid>
-
-        <Grid item xs={12} md={6} sx={{ flex: 1}}>
-          <Paper sx={{ p: 2, height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
-            <Tabs value={activeTab} onChange={handleTabChange} sx={{ width: '100%', display: 'flex', gap: 2 }} >
-              <Tab label="Tóm tắt tài liệu" sx={{ flexGrow: 1, textAlign: 'center' }} />
-              <Tab label="Các điều khoản/quy định" sx={{ flexGrow: 1, textAlign: 'center' }} />
-              <Tab label="Hỏi đáp" sx={{ flexGrow: 1, textAlign: 'center' }} />
-            </Tabs>
-
-            <Box sx={{ mt: 2, flex: 1, display: 'flex', flexDirection: 'column', width: '100%'}}>
-              {activeTab === 0 && (
-                // <InfoCardList data = {summary}/>
-                <Typography sx={{ flex: 1 }}>{summary || 'Loading summary...'}</Typography>
-              )}
-
-              {activeTab === 1 && (
-                <Box sx={{ flex: 1, overflow: 'auto' ,maxWidth: '100%' }}>
-                  {clauseList.map((clause, index) => (
-                    <Accordion key={clause.title} sx={{ width: '100%' }}>
-                      <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                        <Typography> {clause.title}  </Typography>
-                      </AccordionSummary>
-                      <AccordionDetails>
-                        <Typography style={{ whiteSpace: 'pre-line' }}> {clause.content} </Typography>
-                      </AccordionDetails>
-                    </Accordion>
-                  ))}
                 </Box>
               )}
+              </Paper>
+            </Grid>
 
-              {activeTab === 2 && (
-                <Box sx={{ 
-                  display: 'flex', 
-                  flexDirection: 'column', 
-                  height: '100%', 
-                  width: '95%', 
-                  margin: '0 auto' 
-                }}>
+            <Grid item xs={12} md={6} sx={{ flex: 1 }}>
+              <Paper sx={{ p: 2, height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              <Tabs value={activeTab} onChange={handleTabChange} sx={{ width: '100%', display: 'flex', gap: 2 }}>
+                <Tab label="Tóm tắt tài liệu" sx={{ flexGrow: 1, textAlign: 'center' }} />
+                <Tab label="Các điều khoản/quy định" sx={{ flexGrow: 1, textAlign: 'center' }} />
+                <Tab label="Hỏi đáp" sx={{ flexGrow: 1, textAlign: 'center' }} />
+              </Tabs>
+
+              <Box sx={{ mt: 2, flex: 1, display: 'flex', flexDirection: 'column', width: '100%' }}>
+                {activeTab === 0 && (
+                <Box sx={{ flex: 1, overflow: 'auto', maxWidth: '100%' }}>
+                  {summary ? <StyledMarkdown content={summary} /> : 'Loading summary...'}
+                </Box>
+                )}
+
+                {activeTab === 1 && (
+                <Box sx={{ flex: 1, overflow: 'auto', maxWidth: '100%' }}>
+                  {clauseList.map((clause, index) => (
+                  <Accordion key={clause.title} sx={{ width: '100%' }}>
+                    <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                    <Typography>{clause.title}</Typography>
+                    </AccordionSummary>
+                    <AccordionDetails>
+                    <StyledMarkdown content={clause.content} />
+                    </AccordionDetails>
+                  </Accordion>
+                  ))}
+                </Box>
+                )}
+
+                {activeTab === 2 && (
+                <Box
+                  sx={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  height: '100%',
+                  width: '95%',
+                  margin: '0 auto',
+                  }}
+                >
                   <List sx={{ flex: 1, overflow: 'auto', mb: 2 }}>
-                    {chatMessages.map((message, index) => (
-                      <Box key={index}>
-                        <ListItem
-                          sx={{
-                            justifyContent: message.type === 'user' ? 'flex-end' : 'flex-start',
-                            alignItems: 'flex-start'
-                          }}
-                        >
-                          <Paper
-                            elevation={1}
-                            sx={{
-                              p: 2,
-                              maxWidth: '70%',
-                              backgroundColor: message.type === 'user' ? 'primary.light' : 'grey.100',
-                              color: message.type === 'user' ? 'white' : 'text.primary'
-                            }}
-                          >
-                            {message.type === 'user' ? (
-                              <ListItemText
-                                primary={message.content}
-                                sx={{ wordBreak: 'break-word' }}
-                              />
-                            ) : (
-                              <StyledMarkdown content={message.content} />
-                            )}
-                          </Paper>
-                        </ListItem>
-                        <Divider />
-                      </Box>
-                    ))}
+                  {chatMessages.map((message, index) => (
+                    <Box key={index}>
+                    <ListItem
+                      sx={{
+                      justifyContent: message.type === 'user' ? 'flex-end' : 'flex-start',
+                      alignItems: 'flex-start',
+                      }}
+                    >
+                      <Paper
+                      elevation={1}
+                      sx={{
+                        p: 2,
+                        maxWidth: '70%',
+                        backgroundColor: message.type === 'user' ? 'primary.light' : 'grey.100',
+                        color: message.type === 'user' ? 'white' : 'text.primary',
+                      }}
+                      >
+                      {message.type === 'user' ? (
+                        <ListItemText
+                        primary={message.content}
+                        sx={{ wordBreak: 'break-word' }}
+                        />
+                      ) : (
+                        <StyledMarkdown content={message.content} />
+                      )}
+                      </Paper>
+                    </ListItem>
+                    <Divider />
+                    </Box>
+                  ))}
                   </List>
                   <Box sx={{ display: 'flex', gap: 1, mt: 'auto' }}>
-                    <TextField
-                      fullWidth
-                      multiline
-                      maxRows={3}
-                      value={chatQuery}
-                      onChange={(e) => setChatQuery(e.target.value)}
-                      placeholder="Hỏi gì đó về tài liệu..."
-                      onKeyDown={(e) => {
+                  <TextField
+                    fullWidth
+                    multiline
+                    maxRows={3}
+                    value={chatQuery}
+                    onChange={(e) => setChatQuery(e.target.value)}
+                    placeholder="Hỏi gì đó về tài liệu..."
+                    onKeyDown={(e) => {
                         if (e.key === 'Enter' && !e.shiftKey) {
                           e.preventDefault();
                           handleChat();

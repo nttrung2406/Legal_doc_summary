@@ -18,7 +18,28 @@ import { Upload as UploadIcon } from '@mui/icons-material';
 
 // pdfjs.GlobalWorkerOptions.workerSrc = workerSrc;
 
+const handleRename = async (id) => {
+  const newName = prompt('Enter the new name for the document:');
+  if (!newName) return;
 
+  try {
+    await documents.rename(id, newName);
+    await fetchDocuments();
+  } catch (err) {
+    setError('Failed to rename document');
+  }
+};
+
+const handleDelete = async (filename, documentId) => {
+  if (!window.confirm('Are you sure you want to delete this document?')) return;
+
+  try {
+    await documents.deleteDocument(filename, documentId);
+    await fetchDocuments();
+  } catch (err) {
+    setError('Failed to delete document');
+  }
+};
 const DocumentList = () => {
   const navigate = useNavigate();
   const [userDocuments, setUserDocuments] = useState([]);
@@ -110,16 +131,30 @@ const DocumentList = () => {
                   boxShadow: 6,
                 },
               }}
-              onClick={() => navigate(`/document/${doc.filename}/${doc.id}`)}
             >
               <CardContent>
-                <Typography variant="h6" component="h2" gutterBottom>
+                <Typography
+                  variant="h6"
+                  component="h2"
+                  gutterBottom
+                  onClick={() => navigate(`/document/${doc.filename}/${doc.id}`)}
+                >
                   {doc.filename}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
                   Uploaded on: {new Date(doc.created_at).toLocaleDateString()}
                 </Typography>
               </CardContent>
+              <Box display="flex" justifyContent="flex-end" p={2}>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  color="error"
+                  onClick={() => handleDelete(doc.filename, doc.id)}
+                >
+                  Delete
+                </Button>
+              </Box>
             </Card>
           </Grid>
         ))}
@@ -134,6 +169,8 @@ const DocumentList = () => {
       )}
     </Container>
   );
+
+  
 };
 
 export default DocumentList; 
