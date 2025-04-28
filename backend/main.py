@@ -49,6 +49,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+
 # Add Prometheus middleware
 app.add_middleware(PrometheusMiddleware)
 app.add_route("/metrics", metrics)

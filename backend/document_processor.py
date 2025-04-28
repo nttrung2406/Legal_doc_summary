@@ -16,6 +16,8 @@ import cv2
 import numpy as np
 import logging
 import re
+from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
+import httpx
 
 logger = logging.getLogger(__name__)
 
@@ -29,13 +31,22 @@ model_1 = genai.GenerativeModel('gemini-1.5-pro')
 
 GEMINI_API_KEY_2 = os.getenv("GEMINI_API_KEY_2")
 genai.configure(api_key=GEMINI_API_KEY_2)
-model_2 = genai.GenerativeModel('gemini-1.5-pro')
+model_2 = genai.GenerativeModel('gemini-1.5-flash')
 
 tokenizer = AutoTokenizer.from_pretrained('sentence-transformers/all-MiniLM-L6-v2')
 embedding_model = AutoModel.from_pretrained('sentence-transformers/all-MiniLM-L6-v2')
 
 # Initialize PaddleOCR
 ocr = PaddleOCR(use_angle_cls=True, lang='en', use_gpu=False)  # Set use_gpu=True if you have GPU
+
+# Define retry decorator
+def gemini_retry():
+    return retry(
+        retry=retry_if_exception_type((httpx.HTTPError, Exception)),
+        stop=stop_after_attempt(3),  # Retry tối đa 3 lần
+        wait=wait_exponential(multiplier=1, min=2, max=10),  # chờ 2s, 4s, 8s giữa các lần
+        reraise=True  # cuối cùng raise lỗi nếu thất bại
+    )
 
 def extract_text_from_pdf(pdf_path: str) -> str:
     """Extract text from PDF file including text from images."""
@@ -116,6 +127,7 @@ def get_similar_chunks(query: str, document_chunks: List[str], document_embeddin
     top_indices = np.argsort(similarities)[-top_k:][::-1]
     return [document_chunks[i] for i in top_indices]
 
+@gemini_retry()
 def generate_summary(text: str, user_id: str) -> Tuple[bool, str]:
     """Generate summary using Gemini with rate limiting."""
     can_proceed, message = check_api_usage(user_id)
@@ -133,6 +145,7 @@ def generate_summary(text: str, user_id: str) -> Tuple[bool, str]:
     
     return True, response.text
 
+@gemini_retry()
 def extract_clauses(text:str, user_id: str) -> Tuple[bool, List[str]]:
     """Generate summaries for each paragraph with rate limiting."""
     # summaries = []
@@ -206,7 +219,7 @@ def extract_clauses(text:str, user_id: str) -> Tuple[bool, List[str]]:
     Danh sách các từ không có dấu cần được thêm dấu:
     {clause_type}
     """
-    response_2 = model_1.generate_content(prompt_2)
+    response_2 = model_2.generate_content(prompt_2)
    
     pattern = r'</\w+>'
     tags = re.findall(pattern, response_2.text)
@@ -222,7 +235,6 @@ def extract_clauses(text:str, user_id: str) -> Tuple[bool, List[str]]:
 
     for d, ct in zip(clause_list, clause_type):
         d["title"] = ct 
-    #clause_list = [{k: list(d.values())[0]} for k, d in zip(clause_type, clause_list)]
 
     update_api_usage(user_id)
     return True, clause_list

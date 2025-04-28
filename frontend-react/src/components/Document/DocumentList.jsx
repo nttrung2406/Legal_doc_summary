@@ -30,16 +30,8 @@ const handleRename = async (id) => {
   }
 };
 
-const handleDelete = async (filename, documentId) => {
-  if (!window.confirm('Are you sure you want to delete this document?')) return;
 
-  try {
-    await documents.deleteDocument(filename, documentId);
-    await fetchDocuments();
-  } catch (err) {
-    setError('Failed to delete document');
-  }
-};
+
 const DocumentList = () => {
   const navigate = useNavigate();
   const [userDocuments, setUserDocuments] = useState([]);
@@ -59,6 +51,26 @@ const DocumentList = () => {
       setError('Failed to fetch documents');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDelete = async (filename, documentId) => {
+    if (!window.confirm('Are you sure you want to delete this document?')) return;
+  
+    try {
+      const response = await documents.deleteDocument(filename, documentId);
+  
+      // Assuming the response is an object with a "response" key
+      const { response: result } = response; 
+  
+      if (result && result[0] === false) {
+        alert(result[1]); // Show error message if deletion failed
+      } else {
+        alert("Document deleted successfully!");
+        await fetchDocuments(); // Refresh the document list
+      }
+    } catch (err) {
+      setError('Failed to delete document');
     }
   };
 
