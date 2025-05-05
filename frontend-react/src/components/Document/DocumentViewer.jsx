@@ -238,17 +238,37 @@ const DocumentViewer = () => {
                 <Box sx={{ 
                   display: 'flex', 
                   flexDirection: 'column', 
-                  height: '100%', 
+                  height: 'calc(100vh - 300px)',
                   width: '95%', 
-                  margin: '0 auto' 
+                  margin: '0 auto',
+                  position: 'relative'
                 }}>
-                  <List sx={{ flex: 1, overflow: 'auto', mb: 2 }}>
+                  <List sx={{ 
+                    flex: 1, 
+                    overflow: 'auto', 
+                    mb: 2,
+                    maxHeight: 'calc(100% - 60px)',
+                    '&::-webkit-scrollbar': {
+                      width: '8px',
+                    },
+                    '&::-webkit-scrollbar-track': {
+                      background: '#f1f1f1',
+                    },
+                    '&::-webkit-scrollbar-thumb': {
+                      background: '#888',
+                      borderRadius: '4px',
+                    },
+                    '&::-webkit-scrollbar-thumb:hover': {
+                      background: '#555',
+                    },
+                  }}>
                     {chatMessages.map((message, index) => (
                       <Box key={index}>
                         <ListItem
                           sx={{
                             justifyContent: message.type === 'user' ? 'flex-end' : 'flex-start',
-                            alignItems: 'flex-start'
+                            alignItems: 'flex-start',
+                            py: 1
                           }}
                         >
                           <Paper
@@ -274,7 +294,15 @@ const DocumentViewer = () => {
                       </Box>
                     ))}
                   </List>
-                  <Box sx={{ display: 'flex', gap: 1, mt: 'auto' }}>
+                  <Box sx={{ 
+                    display: 'flex', 
+                    gap: 1, 
+                    position: 'sticky',
+                    bottom: 0,
+                    backgroundColor: 'white',
+                    pt: 1,
+                    pb: 1
+                  }}>
                     <TextField
                       fullWidth
                       multiline

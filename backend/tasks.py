@@ -5,11 +5,12 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-# Initialize Celery
-app = Celery('tasks', broker='amqp://localhost:5672//')
+# Initialize Celery with proper configuration
+app = Celery('tasks')
+app.config_from_object('celeryconfig')
 
-@app.task
-def cleanup_old_documents():
+@app.task(bind=True)
+def cleanup_old_documents(self):
     """Clean up documents older than 30 days at the end of each month."""
     try:
         today = datetime.now()
