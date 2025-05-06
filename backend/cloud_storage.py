@@ -36,9 +36,16 @@ def get_file(document_id):
 def delete_file(document_id):
     if not document_id:
         return False, "Document ID is required."
-    cloudinary.uploader.destroy(document_id)
-    return True 
-#print(delete_file("Report_1"))
+    
+    try:
+        result = cloudinary.uploader.destroy(document_id, resource_type='raw')
+        print(result)
+        if result.get('result') == 'ok':
+            return True, "Deleted successfully."
+        else:
+            return False, f"Failed to delete: {result.get('result')}"
+    except Exception as e:
+        return False, str(e)
 
 def get_pdf_url(public_id: str):
     url, options = cloudinary_url(public_id, resource_type="raw")

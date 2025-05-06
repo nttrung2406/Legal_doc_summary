@@ -27,9 +27,9 @@ from gemini_monitoring import (
 
 from database import (
     create_user, verify_user, create_access_token,
-    save_document, get_user_documents, get_document_by_filename, get_document_by_id,
+    save_document, get_user_documents, get_document_by_filename, get_document_by_id, delete_pdf_file,
     SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES,
-    users_collection
+    users_collection, documents_collection
 )
 from document_processor import (
     extract_text_from_pdf, chunk_text, generate_embeddings, generate_summary, extract_clauses, generate_chat_response,
