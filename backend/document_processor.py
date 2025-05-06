@@ -21,6 +21,7 @@ from rouge import Rouge
 from nltk.translate.meteor_score import meteor_score
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 import httpx
+from prometheus_client import Counter, Gauge, Histogram
 
 logger = logging.getLogger(__name__)
 
@@ -133,32 +134,44 @@ def get_similar_chunks(query: str, document_chunks: List[str], document_embeddin
 @gemini_retry()
 def generate_summary(text: str, user_id: str) -> Tuple[bool, str]:
     """Generate summary using Gemini with rate limiting."""
-    can_proceed, message = check_api_usage(user_id)
-    if not can_proceed:
-        return False, message
+    start_time = time.time()
+    api_calls_total.inc()
     
-    prompt = f"""Bạn là một trợ lý AI chuyên về các văn bản pháp luật và pháp lý như là bộ luật, hợp đồng, nội quy, thể lệ, điều khoản và điều kiện sử dụng... Hãy tóm tắt **ngữ cảnh được cung cấp** bên dưới một cách chính xác nhất có thể.
-
-    Cung cấp một bản tóm tắt tổng quan giúp người đọc nắm được các thông tin quan trọng của văn bản pháp lý, pháp luật dưới đây. Bản tóm tắt phải ngắn gọn và cung cấp đầy đủ các thông tin cơ bản của tài liệu pháp lý/pháp luật. Không dùng lời mở đầu. 
-
-    Văn bản pháp lý/pháp luật:
-    {text}
-    """
-    response = model_2.generate_content(prompt)
-    
-    # Update metrics with the original text as reference
     try:
-        rouge_scorer = Rouge()
-        rouge_scores = rouge_scorer.get_scores(response.text, text)[0]
-        rouge_l = rouge_scores['rouge-l']['f']
-        meteor = meteor_score([text.split()], response.text.split())
+        can_proceed, message = check_api_usage(user_id)
+        if not can_proceed:
+            api_errors_total.inc()
+            return False, message
         
-        rouge_score.set(rouge_l)
-        meteor_score_gauge.set(meteor)
+        prompt = f"""Bạn là một trợ lý AI chuyên về các văn bản pháp luật và pháp lý như là bộ luật, hợp đồng, nội quy, thể lệ, điều khoản và điều kiện sử dụng... Hãy tóm tắt **ngữ cảnh được cung cấp** bên dưới một cách chính xác nhất có thể.
+
+        Cung cấp một bản tóm tắt tổng quan giúp người đọc nắm được các thông tin quan trọng của văn bản pháp lý, pháp luật dưới đây. Bản tóm tắt phải ngắn gọn và cung cấp đầy đủ các thông tin cơ bản của tài liệu pháp lý/pháp luật. Không dùng lời mở đầu. 
+
+        Văn bản pháp lý/pháp luật:
+        {text}
+        """
+        response = model_2.generate_content(prompt)
+        
+        # Update metrics
+        latency = time.time() - start_time
+        api_latency_seconds.observe(latency)
+        
+        # Update ROUGE and METEOR scores
+        try:
+            rouge_scorer = Rouge()
+            rouge_scores = rouge_scorer.get_scores(response.text, text)[0]
+            rouge_l = rouge_scores['rouge-l']['f']
+            meteor = meteor_score([text.split()], response.text.split())
+            
+            rouge_score.set(rouge_l)
+            meteor_score_gauge.set(meteor)
+        except Exception as e:
+            logger.error(f"Error calculating metrics: {e}")
+        
+        return True, response.text
     except Exception as e:
-        print(f"Error calculating metrics: {e}")
-    
-    return True, response.text
+        api_errors_total.inc()
+        raise e
 
 @gemini_retry()
 def extract_clauses(text:str, user_id: str) -> Tuple[bool, List[str]]:
@@ -256,35 +269,52 @@ def extract_clauses(text:str, user_id: str) -> Tuple[bool, List[str]]:
 
 def generate_chat_response(query: str, context_chunks: List[str], user_id: str) -> Tuple[bool, str]:
     """Generate chat response using Gemini with context and rate limiting."""
-    can_proceed, message = check_api_usage(user_id)
-    if not can_proceed:
-        return False, message
+    start_time = time.time()
+    api_calls_total.inc()
     
-    context = "\n".join(context_chunks)
-    prompt = f"""
-    Bạn là một trợ lý AI chuyên về pháp luật Việt Nam. Chỉ sử dụng **ngữ cảnh được cung cấp** bên dưới để trả lời câu hỏi của người dùng một cách chính xác nhất có thể.
+    try:
+        can_proceed, message = check_api_usage(user_id)
+        if not can_proceed:
+            api_errors_total.inc()
+            return False, message
+        
+        context = "\n".join(context_chunks)
+        prompt = f"""
+        Bạn là một trợ lý AI chuyên về pháp luật Việt Nam. Chỉ sử dụng **ngữ cảnh được cung cấp** bên dưới để trả lời câu hỏi của người dùng một cách chính xác nhất có thể.
 
-    --- NGỮ CẢNH (trích từ văn bản pháp luật) ---
-    {context}
-    ---------------------------------------------
+        --- NGỮ CẢNH (trích từ văn bản pháp luật) ---
+        {context}
+        ---------------------------------------------
 
-    Trả lời câu hỏi bên dưới **dựa hoàn toàn vào ngữ cảnh trên**. Nếu câu hỏi không được đề cập rõ ràng trong ngữ cảnh, hãy nêu rõ rằng nội dung đó không có trong tài liệu.
+        Trả lời câu hỏi bên dưới **dựa hoàn toàn vào ngữ cảnh trên**. Nếu câu hỏi không được đề cập rõ ràng trong ngữ cảnh, hãy nêu rõ rằng nội dung đó không có trong tài liệu.
 
-    Nếu câu hỏi đề cập đến quy định pháp luật liên quan nhưng không có trong ngữ cảnh, bạn có thể gợi ý người dùng tra cứu trên cổng thông tin pháp luật chính thức: https://thuvienphapluat.vn/
+        Nếu câu hỏi đề cập đến quy định pháp luật liên quan nhưng không có trong ngữ cảnh, bạn có thể gợi ý người dùng tra cứu trên cổng thông tin pháp luật chính thức: https://thuvienphapluat.vn/
 
-    --- CÂU HỎI ---
-    {query}
+        --- CÂU HỎI ---
+        {query}
 
-    --- HƯỚNG DẪN ---
-    - **Tuyệt đối không bịa đặt** quy định hoặc thông tin pháp luật.
-    - Nếu câu trả lời có thể được tìm thấy trong ngữ cảnh, hãy trích dẫn hoặc diễn giải lại một cách chính xác.
-    - Nếu nội dung nằm ngoài phạm vi của ngữ cảnh, hãy nêu rõ điều đó.
-    - Chỉ đề cập đến https://thuvienphapluat.vn nếu cần gợi ý tra cứu thêm.
+        --- HƯỚNG DẪN ---
+        - **Tuyệt đối không bịa đặt** quy định hoặc thông tin pháp luật.
+        - Nếu câu trả lời có thể được tìm thấy trong ngữ cảnh, hãy trích dẫn hoặc diễn giải lại một cách chính xác.
+        - Nếu nội dung nằm ngoài phạm vi của ngữ cảnh, hãy nêu rõ điều đó.
+        - Chỉ đề cập đến https://thuvienphapluat.vn nếu cần gợi ý tra cứu thêm.
 
-    **Chỉ trả lời bằng tiếng Việt**. Ghi câu trả lời bên dưới:
-    """
+        **Chỉ trả lời bằng tiếng Việt**. Ghi câu trả lời bên dưới:
+        """
 
+        response = model_2.generate_content(prompt)
+        
+        # Update metrics
+        latency = time.time() - start_time
+        api_latency_seconds.observe(latency)
+        
+        update_api_usage(user_id)
+        return True, response.text
+    except Exception as e:
+        api_errors_total.inc()
+        raise e
 
-    response = model_2.generate_content(prompt)
-    update_api_usage(user_id)
-    return True, response.text 
+# Prometheus metrics
+api_calls_total = Counter('api_calls_total', 'Total number of API calls')
+api_errors_total = Counter('api_errors_total', 'Total number of API errors')
+api_latency_seconds = Histogram('api_latency_seconds', 'API latency in seconds') 
