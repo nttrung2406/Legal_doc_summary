@@ -4,6 +4,15 @@ datasources:
   - name: Prometheus
     type: prometheus
     access: proxy
-    url: http://localhost:9090
+    url: http://localhost:8000
     isDefault: true
-    editable: true 
+    editable: true
+    jsonData:
+      timeInterval: 5s
+      queryTimeout: 30s
+      httpMethod: GET
+      manageAlerts: true
+      alerting: true
+    secureJsonData:
+      basicAuthPassword: ""
+    basicAuth: false 

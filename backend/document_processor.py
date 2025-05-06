@@ -16,6 +16,9 @@ import cv2
 import numpy as np
 import logging
 import re
+from gemini_monitoring import rouge_score, meteor_score_gauge
+from rouge import Rouge
+from nltk.translate.meteor_score import meteor_score
 
 logger = logging.getLogger(__name__)
 
@@ -130,6 +133,18 @@ def generate_summary(text: str, user_id: str) -> Tuple[bool, str]:
     {text}
     """
     response = model_2.generate_content(prompt)
+    
+    # Update metrics with the original text as reference
+    try:
+        rouge_scorer = Rouge()
+        rouge_scores = rouge_scorer.get_scores(response.text, text)[0]
+        rouge_l = rouge_scores['rouge-l']['f']
+        meteor = meteor_score([text.split()], response.text.split())
+        
+        rouge_score.set(rouge_l)
+        meteor_score_gauge.set(meteor)
+    except Exception as e:
+        print(f"Error calculating metrics: {e}")
     
     return True, response.text
 

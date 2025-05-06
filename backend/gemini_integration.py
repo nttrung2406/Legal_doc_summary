@@ -17,7 +17,8 @@ class GeminiService:
     async def generate_summary(self, text: str, reference: Optional[str] = None) -> Dict[str, Any]:
         """Generate a summary using Gemini with monitoring."""
         prompt = f"Please provide a concise summary of the following text:\n\n{text}"
-        result = self.monitor.generate_with_metrics(prompt, reference)
+        # Use the original text as reference if none provided
+        result = self.monitor.generate_with_metrics(prompt, reference or text)
         
         GeminiMetrics.save_api_call(
             prompt=prompt,
