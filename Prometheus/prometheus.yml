@@ -7,4 +7,14 @@ scrape_configs:
     static_configs:
       - targets: ['localhost:8000']
     metrics_path: '/metrics'
-    scheme: 'http' 
+    scheme: 'http'
+
+  - job_name: 'gemini'
+    static_configs:
+      - targets: ['localhost:8000']
+    metrics_path: '/metrics/gemini'
+    scheme: 'http'
+    metric_relabel_configs:
+      - source_labels: [__name__]
+        regex: 'gemini_.*'
+        action: keep 

@@ -247,7 +247,8 @@ const DocumentViewer = () => {
                     flex: 1, 
                     overflow: 'auto', 
                     mb: 2,
-                    maxHeight: 'calc(100% - 60px)',
+                    maxHeight: 'calc(100% - 100px)',
+                    paddingBottom: '20px',
                     '&::-webkit-scrollbar': {
                       width: '8px',
                     },
@@ -268,7 +269,8 @@ const DocumentViewer = () => {
                           sx={{
                             justifyContent: message.type === 'user' ? 'flex-end' : 'flex-start',
                             alignItems: 'flex-start',
-                            py: 1
+                            py: 1,
+                            px: 2
                           }}
                         >
                           <Paper
@@ -296,12 +298,14 @@ const DocumentViewer = () => {
                   </List>
                   <Box sx={{ 
                     display: 'flex', 
-                    gap: 1, 
+                    gap: 2, 
                     position: 'sticky',
-                    bottom: 0,
+                    bottom: -444,
                     backgroundColor: 'white',
                     pt: 1,
-                    pb: 1
+                    pb: 1,
+                    mt: 1,
+                    borderTop: '1px solid #e0e0e0'
                   }}>
                     <TextField
                       fullWidth
