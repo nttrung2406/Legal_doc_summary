@@ -49,6 +49,12 @@ const DocumentViewer = () => {
     fetchDocument();
   }, [filename]);
   
+  useEffect(() => {
+    if (activeTab == 0)
+    {
+      fetchSummary();
+    }
+  }, [])
   const fetchDocument = async () => {
     try {
       setLoading(true);
@@ -71,6 +77,15 @@ const DocumentViewer = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const fetchSummary = async() => {
+    try {
+      const data = await documents.getSummary(filename, documentId);
+      setSummary(data.summary);
+    } catch (err) {
+      setError('Failed to fetch summary');
+    } 
   };
 
   const handleTabChange = async (event, newValue) => {
@@ -144,8 +159,8 @@ const DocumentViewer = () => {
         <Alert severity="error">Document not found</Alert>
       </Container>
     );
-  }
 
+  }
   return (
     <Container  maxWidth={false} sx={{ mt: 6, mb: 12 }}>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={4}>
