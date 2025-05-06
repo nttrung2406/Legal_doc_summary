@@ -208,3 +208,16 @@ def get_pdf_file(pdf_id):
     except:
         return None
 
+def delete_pdf_file(documentId):
+    try:
+        result = documents_collection.delete_one({ "_id": ObjectId(documentId) })
+        if result.deleted_count == 1:
+            print("Deleted successfully")
+            return True
+        else:
+            print("Document not found")
+            return False
+    except Exception as e:
+        print(f"Delete failed: {e}")
+        return False 
+

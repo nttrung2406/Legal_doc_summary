@@ -54,7 +54,7 @@ timeout /t 5 /nobreak >nul
 
 :: Start Celery worker
 echo Starting Celery worker...
-start cmd /k "cd backend && celery -A tasks worker --loglevel=info"
+start cmd /k "cd backend && celery -A tasks worker --loglevel=info -Q cleanup"
 
 :: Start Celery beat for scheduled tasks
 echo Starting Celery beat...

@@ -85,6 +85,11 @@ export const documents = {
     const response = await api.post(`/chat/${filename}/${documentId}`, { query });
     return response.data;
   },
+
+  deleteDocument: async(filename, documentId) => {
+    const response = await api.delete(`/delete/${filename}/${documentId}`)
+    return response.data;
+  }
 };
 
 export default api; 

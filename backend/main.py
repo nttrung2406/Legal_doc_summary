@@ -1,5 +1,5 @@
-from fastapi import FastAPI, UploadFile, File, HTTPException, Depends, Body, Request, Form
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from fastapi import FastAPI, UploadFile, File, HTTPException, Depends, Body, Request, Form, Security
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm, HTTPBasic, HTTPBasicCredentials
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, StreamingResponse, JSONResponse, Response
 from datetime import timedelta
@@ -20,12 +20,16 @@ from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
 from starlette_prometheus import metrics, PrometheusMiddleware
 from gemini_integration import gemini_service
 from gemini_metrics import GeminiMetrics
+from gemini_monitoring import (
+    rouge_score, meteor_score_gauge, api_calls_total,
+    api_latency_seconds, api_errors_total, token_usage_total
+)
 
 from database import (
     create_user, verify_user, create_access_token,
-    save_document, get_user_documents, get_document_by_filename, get_document_by_id,
+    save_document, get_user_documents, get_document_by_filename, get_document_by_id, delete_pdf_file,
     SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES,
-    users_collection
+    users_collection, documents_collection
 )
 from document_processor import (
     extract_text_from_pdf, chunk_text, generate_embeddings, generate_summary, extract_clauses, generate_chat_response,
@@ -49,6 +53,20 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Add basic auth security
+security = HTTPBasic()
+
+def verify_metrics_auth(credentials: HTTPBasicCredentials = Security(security)):
+    correct_username = "admin"
+    correct_password = "admin"
+    if credentials.username != correct_username or credentials.password != correct_password:
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid credentials",
+            headers={"WWW-Authenticate": "Basic"},
+        )
+    return credentials
 
 # Add Prometheus middleware
 app.add_middleware(PrometheusMiddleware)
@@ -320,4 +338,49 @@ async def get_metrics_summary():
         summary = GeminiMetrics.get_metrics_summary()
         return JSONResponse(content=summary)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e)) 
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/oauth/authorize")
+async def oauth_authorize():
+    """OAuth authorization endpoint."""
+    return {"message": "Authorization endpoint"}
+
+@app.post("/oauth/token")
+async def oauth_token():
+    """OAuth token endpoint."""
+    return {"message": "Token endpoint"}
+
+@app.get("/oauth/userinfo")
+async def oauth_userinfo(current_user: dict = Depends(get_current_user)):
+    """OAuth user info endpoint."""
+    return {
+        "sub": str(current_user["_id"]),
+        "name": current_user["username"],
+        "email": current_user["email"],
+        "preferred_username": current_user["username"]
+    }
+
+@app.get("/metrics/gemini")
+async def gemini_metrics():
+    """Expose Gemini metrics to Prometheus without authentication."""
+    return Response(
+        generate_latest(),
+        media_type=CONTENT_TYPE_LATEST
+    ) 
+
+@app.delete("/delete/{filename}/{documentId}")
+async def delete_document(
+    filename: str,
+    documentId: str,
+    current_user: dict = Depends(get_current_user)
+):
+    document = get_document_by_id(documentId)
+    result = delete_pdf_file(documentId)
+    if result:
+        publicId = str(current_user["_id"]) + "_" + os.path.splitext(filename)[0]
+        print(publicId)
+        result = delete_file(publicId)
+        return {"response": result}
+    else:
+        result = documents_collection.insert_one(document)
+        return {"response": (False, "An error occured")}

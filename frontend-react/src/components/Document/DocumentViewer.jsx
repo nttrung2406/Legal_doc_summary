@@ -177,14 +177,13 @@ const DocumentViewer = () => {
             >
               <Page
                 pageNumber={pageNumber}
-                // width={500}
                 scale={1.3}
                 renderTextLayer={false}
                 renderAnnotationLayer={false}
-              />
-            </Document>
-            {numPages && (
-              <Box display="flex" justifyContent="center" mt={2}>
+                />
+              </Document>
+              {numPages && (
+                <Box display="flex" justifyContent="center" mt={2}>
                 <Button
                   disabled={pageNumber <= 1}
                   onClick={() => setPageNumber(pageNumber - 1)}
@@ -200,55 +199,78 @@ const DocumentViewer = () => {
                 >
                   Next
                 </Button>
-              </Box>
-            )}
-          </Paper>
-        </Grid>
-
-        <Grid item xs={12} md={6} sx={{ flex: 1}}>
-          <Paper sx={{ p: 2, height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
-            <Tabs value={activeTab} onChange={handleTabChange} sx={{ width: '100%', display: 'flex', gap: 2 }} >
-              <Tab label="Tóm tắt tài liệu" sx={{ flexGrow: 1, textAlign: 'center' }} />
-              <Tab label="Các điều khoản/quy định" sx={{ flexGrow: 1, textAlign: 'center' }} />
-              <Tab label="Hỏi đáp" sx={{ flexGrow: 1, textAlign: 'center' }} />
-            </Tabs>
-
-            <Box sx={{ mt: 2, flex: 1, display: 'flex', flexDirection: 'column', width: '100%'}}>
-              {activeTab === 0 && (
-                // <InfoCardList data = {summary}/>
-                <Typography sx={{ flex: 1 }}>{summary || 'Loading summary...'}</Typography>
-              )}
-
-              {activeTab === 1 && (
-                <Box sx={{ flex: 1, overflow: 'auto' ,maxWidth: '100%' }}>
-                  {clauseList.map((clause, index) => (
-                    <Accordion key={clause.title} sx={{ width: '100%' }}>
-                      <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                        <Typography> {clause.title}  </Typography>
-                      </AccordionSummary>
-                      <AccordionDetails>
-                        <Typography style={{ whiteSpace: 'pre-line' }}> {clause.content} </Typography>
-                      </AccordionDetails>
-                    </Accordion>
-                  ))}
                 </Box>
               )}
+              </Paper>
+            </Grid>
+
+            <Grid item xs={12} md={6} sx={{ flex: 1 }}>
+              <Paper sx={{ p: 2, height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              <Tabs value={activeTab} onChange={handleTabChange} sx={{ width: '100%', display: 'flex', gap: 2 }}>
+                <Tab label="Tóm tắt tài liệu" sx={{ flexGrow: 1, textAlign: 'center' }} />
+                <Tab label="Các điều khoản/quy định" sx={{ flexGrow: 1, textAlign: 'center' }} />
+                <Tab label="Hỏi đáp" sx={{ flexGrow: 1, textAlign: 'center' }} />
+              </Tabs>
+
+              <Box sx={{ mt: 2, flex: 1, display: 'flex', flexDirection: 'column', width: '100%' }}>
+                {activeTab === 0 && (
+                <Box sx={{ flex: 1, overflow: 'auto', maxWidth: '100%' }}>
+                  {summary ? <StyledMarkdown content={summary} /> : 'Loading summary...'}
+                </Box>
+                )}
+
+                {activeTab === 1 && (
+                <Box sx={{ flex: 1, overflow: 'auto', maxWidth: '100%' }}>
+                  {clauseList.map((clause, index) => (
+                  <Accordion key={clause.title} sx={{ width: '100%' }}>
+                    <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                    <Typography>{clause.title}</Typography>
+                    </AccordionSummary>
+                    <AccordionDetails>
+                    <StyledMarkdown content={clause.content} />
+                    </AccordionDetails>
+                  </Accordion>
+                  ))}
+                </Box>
+                )}
 
               {activeTab === 2 && (
                 <Box sx={{ 
                   display: 'flex', 
                   flexDirection: 'column', 
-                  height: '100%', 
+                  height: 'calc(100vh - 300px)',
                   width: '95%', 
-                  margin: '0 auto' 
+                  margin: '0 auto',
+                  position: 'relative'
                 }}>
-                  <List sx={{ flex: 1, overflow: 'auto', mb: 2 }}>
+                  <List sx={{ 
+                    flex: 1, 
+                    overflow: 'auto', 
+                    mb: 2,
+                    maxHeight: 'calc(100% - 100px)',
+                    paddingBottom: '20px',
+                    '&::-webkit-scrollbar': {
+                      width: '8px',
+                    },
+                    '&::-webkit-scrollbar-track': {
+                      background: '#f1f1f1',
+                    },
+                    '&::-webkit-scrollbar-thumb': {
+                      background: '#888',
+                      borderRadius: '4px',
+                    },
+                    '&::-webkit-scrollbar-thumb:hover': {
+                      background: '#555',
+                    },
+                  }}>
                     {chatMessages.map((message, index) => (
                       <Box key={index}>
                         <ListItem
                           sx={{
                             justifyContent: message.type === 'user' ? 'flex-end' : 'flex-start',
-                            alignItems: 'flex-start'
+                            alignItems: 'flex-start',
+                            py: 1,
+                            px: 2
                           }}
                         >
                           <Paper
@@ -274,7 +296,17 @@ const DocumentViewer = () => {
                       </Box>
                     ))}
                   </List>
-                  <Box sx={{ display: 'flex', gap: 1, mt: 'auto' }}>
+                  <Box sx={{ 
+                    display: 'flex', 
+                    gap: 2, 
+                    position: 'sticky',
+                    bottom: -444,
+                    backgroundColor: 'white',
+                    pt: 1,
+                    pb: 1,
+                    mt: 1,
+                    borderTop: '1px solid #e0e0e0'
+                  }}>
                     <TextField
                       fullWidth
                       multiline
