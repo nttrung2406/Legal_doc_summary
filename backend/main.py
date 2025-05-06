@@ -367,3 +367,20 @@ async def gemini_metrics():
         generate_latest(),
         media_type=CONTENT_TYPE_LATEST
     ) 
+
+@app.delete("/delete/{filename}/{documentId}")
+async def delete_document(
+    filename: str,
+    documentId: str,
+    current_user: dict = Depends(get_current_user)
+):
+    document = get_document_by_id(documentId)
+    result = delete_pdf_file(documentId)
+    if result:
+        publicId = str(current_user["_id"]) + "_" + os.path.splitext(filename)[0]
+        print(publicId)
+        result = delete_file(publicId)
+        return {"response": result}
+    else:
+        result = documents_collection.insert_one(document)
+        return {"response": (False, "An error occured")}

@@ -16,6 +16,11 @@ import cv2
 import numpy as np
 import logging
 import re
+from gemini_monitoring import rouge_score, meteor_score_gauge
+from rouge import Rouge
+from nltk.translate.meteor_score import meteor_score
+from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
+import httpx
 
 logger = logging.getLogger(__name__)
 
