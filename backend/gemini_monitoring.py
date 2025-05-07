@@ -32,13 +32,16 @@ class GeminiMonitor:
             rouge_l = rouge_scores['rouge-l']['f']
             
             meteor = meteor_score([reference.split()], generated.split())
-            
+            rouge_score.set(rouge_l)
+            meteor_score_gauge.set(meteor)
             return {
                 'rouge': rouge_l,
                 'meteor': meteor
             }
         except Exception as e:
             print(f"Error calculating metrics: {e}")
+            rouge_score.set(0.0)
+            meteor_score_gauge.set(0.0)
             return {
                 'rouge': 0.0,
                 'meteor': 0.0
@@ -54,23 +57,25 @@ class GeminiMonitor:
             
             latency = time.time() - start_time
             api_latency_seconds.observe(latency)
-
             api_calls_total.labels(status=status).inc()
             
             if hasattr(response, 'usage'):
                 token_usage_total.inc(response.usage.total_tokens)
 
-            metrics = {}
-            if reference:
-                metrics = self._calculate_metrics(reference, response.text)
-                rouge_score.set(metrics['rouge'])
-                meteor_score_gauge.set(metrics['meteor'])
+            metrics = self._calculate_metrics(
+                reference=reference,
+                generated=response.text
+            )
+     
+            rouge_score.set(metrics['rouge'])
+            meteor_score_gauge.set(metrics['meteor'])
             
             return {
                 'text': response.text,
                 'metrics': metrics,
                 'latency': latency,
-                'status': status
+                'status': status,
+                'token_usage': getattr(response.usage, 'total_tokens', None)
             }
             
         except Exception as e:

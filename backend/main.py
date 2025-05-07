@@ -7,12 +7,10 @@ import shutil
 import time
 import os
 from typing import List, Optional
-import json
 from jose import jwt, JWTError
 from pydantic import BaseModel
 import logging
 from fastapi.responses import StreamingResponse
-import sys
 import httpx
 from io import BytesIO
 import threading
@@ -20,10 +18,6 @@ from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
 from starlette_prometheus import metrics, PrometheusMiddleware
 from gemini_integration import gemini_service
 from gemini_metrics import GeminiMetrics
-from gemini_monitoring import (
-    rouge_score, meteor_score_gauge, api_calls_total,
-    api_latency_seconds, api_errors_total, token_usage_total
-)
 
 from database import (
     create_user, verify_user, create_access_token,
@@ -139,7 +133,7 @@ async def upload_file(
     file_name = os.path.splitext(file.filename)[0]
     current_user_id = str(current_user["_id"])
     file_path = os.path.join(UPLOAD_DIR, file_name)
-    
+    public_id = None
     try:
         with open(file_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
@@ -238,14 +232,11 @@ async def summarize_document(
     documentId: str,
     current_user: dict = Depends(get_current_user)
 ):
-     # Lấy tài liệu theo documentId
     document = get_document_by_id(documentId)
     
-    # Kiểm tra tài liệu và quyền truy cập của người dùng
     if not document or document["user_id"] != str(current_user["_id"]):
         raise HTTPException(status_code=404, detail="Document not found or unauthorized")
-    
-    # Trả về summary nếu tài liệu hợp lệ
+    SUMMARY_REQUESTS.labels(status="success").inc()
     return {"summary": document['summary']}
 
 @app.get("/clauses/{filename}/{documentId}")

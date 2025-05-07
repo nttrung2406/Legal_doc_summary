@@ -7,7 +7,9 @@ from gemini_metrics import GeminiMetrics
 from dotenv import load_dotenv
 import os
 import time
+import logging
 
+logger = logging.getLogger(__name__)
 load_dotenv()
 
 class GeminiService:
@@ -26,7 +28,7 @@ class GeminiService:
         try:
             prompt = f"Please provide a concise summary of the following text:\n\n{text}"
             result = self.monitor.generate_with_metrics(prompt, reference or text)
-            
+            logger.info(f"Generated metrics: ROUGE={result['metrics'].get('rouge', 0)}, METEOR={result['metrics'].get('meteor', 0)}")
             # Update metrics
             latency = time.time() - start_time
             api_latency_seconds.observe(latency)
@@ -36,10 +38,11 @@ class GeminiService:
             
             # Update ROUGE and METEOR scores if available
             if result.get("metrics"):
-                if "rouge_score" in result["metrics"]:
-                    rouge_score.set(result["metrics"]["rouge_score"])
-                if "meteor_score" in result["metrics"]:
-                    meteor_score_gauge.set(result["metrics"]["meteor_score"])
+                if "rouge" in result["metrics"]:
+                    rouge_score.set(result["metrics"]["rouge"])
+                if "meteor" in result["metrics"]:
+                    meteor_score_gauge.set(result["metrics"]["meteor"])
+
             
             GeminiMetrics.save_api_call(
                 prompt=prompt,
@@ -58,7 +61,7 @@ class GeminiService:
                 "error": result.get("error")
             }
         except Exception as e:
-            api_errors_total.inc()
+            logger.error(f"Error generating summary: {e}")
             raise e
     
     async def chat(self, message: str) -> Dict[str, Any]:
@@ -67,7 +70,9 @@ class GeminiService:
         api_calls_total.inc()
         
         try:
-            result = self.monitor.generate_with_metrics(message)
+            result = self.monitor.generate_with_metrics(
+                prompt=message,
+                reference=message)
             
             # Update metrics
             latency = time.time() - start_time
@@ -75,7 +80,12 @@ class GeminiService:
             
             if result.get("token_usage"):
                 token_usage_total.inc(result["token_usage"])
-            
+
+            if result.get("metrics"):
+                logger.info(f"Chat metrics: ROUGE={result['metrics'].get('rouge', 0)}, METEOR={result['metrics'].get('meteor', 0)}")
+                rouge_score.set(result['metrics'].get('rouge', 0))
+                meteor_score_gauge.set(result['metrics'].get('meteor', 0))
+
             GeminiMetrics.save_api_call(
                 prompt=message,
                 response=result["text"],
@@ -93,6 +103,7 @@ class GeminiService:
             }
         except Exception as e:
             api_errors_total.inc()
+            logger.error(f"Error in chat: {e}")
             raise e
 
 gemini_service = GeminiService() 
