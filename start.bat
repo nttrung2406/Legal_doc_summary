@@ -44,6 +44,14 @@ set "GRAFANA_PATH_LOGS=%GRAFANA_HOME%\logs"
 set "GRAFANA_PATH_PLUGINS=%GRAFANA_HOME%\plugins"
 set "GRAFANA_SV_PATH=%GRAFANA_HOME%\bin\grafana-server.exe"
 
+if exist "%GRAFANA_HOME%\plugins\xychart" (
+    rmdir /s /q "%GRAFANA_HOME%\plugins\xychart"
+)
+
+if not exist "%GRAFANA_HOME%\plugins" mkdir "%GRAFANA_HOME%\plugins"
+if not exist "%GRAFANA_HOME%\data" mkdir "%GRAFANA_HOME%\data"
+if not exist "%GRAFANA_HOME%\logs" mkdir "%GRAFANA_HOME%\logs"
+
 :: Set permissions for Grafana directories
 icacls "%GRAFANA_HOME%" /grant "Users":(OI)(CI)F /T
 

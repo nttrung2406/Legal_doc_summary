@@ -1,6 +1,6 @@
 from typing import Optional, Dict, Any
 from gemini_monitoring import (
-    rouge_score, meteor_score_gauge, api_calls_total,
+    api_calls_total,
     api_latency_seconds, api_errors_total, token_usage_total, GeminiMonitor
 )
 from gemini_metrics import GeminiMetrics
@@ -27,8 +27,8 @@ class GeminiService:
         
         try:
             prompt = f"Please provide a concise summary of the following text:\n\n{text}"
-            result = self.monitor.generate_with_metrics(prompt, reference or text)
-            logger.info(f"Generated metrics: ROUGE={result['metrics'].get('rouge', 0)}, METEOR={result['metrics'].get('meteor', 0)}")
+            result = self.monitor.generate_with_metrics(prompt)
+
             # Update metrics
             latency = time.time() - start_time
             api_latency_seconds.observe(latency)
@@ -36,18 +36,12 @@ class GeminiService:
             if result.get("token_usage"):
                 token_usage_total.inc(result["token_usage"])
             
-            # Update ROUGE and METEOR scores if available
-            if result.get("metrics"):
-                if "rouge" in result["metrics"]:
-                    rouge_score.set(result["metrics"]["rouge"])
-                if "meteor" in result["metrics"]:
-                    meteor_score_gauge.set(result["metrics"]["meteor"])
-
+            logger.info(f"Generated summary metrics: {result.get('metrics', {})}")
             
             GeminiMetrics.save_api_call(
                 prompt=prompt,
                 response=result["text"],
-                metrics=result["metrics"],
+                metrics=result.get("metrics", {}),
                 latency=latency,
                 status=result["status"],
                 error=result.get("error"),
@@ -56,11 +50,12 @@ class GeminiService:
             
             return {
                 "summary": result["text"],
-                "metrics": result["metrics"],
+                "metrics": result.get("metrics", {}),
                 "status": result["status"],
                 "error": result.get("error")
             }
         except Exception as e:
+            api_errors_total.inc()
             logger.error(f"Error generating summary: {e}")
             raise e
     
@@ -70,9 +65,7 @@ class GeminiService:
         api_calls_total.inc()
         
         try:
-            result = self.monitor.generate_with_metrics(
-                prompt=message,
-                reference=message)
+            result = self.monitor.generate_with_metrics(prompt=message)
             
             # Update metrics
             latency = time.time() - start_time
@@ -81,15 +74,13 @@ class GeminiService:
             if result.get("token_usage"):
                 token_usage_total.inc(result["token_usage"])
 
-            if result.get("metrics"):
-                logger.info(f"Chat metrics: ROUGE={result['metrics'].get('rouge', 0)}, METEOR={result['metrics'].get('meteor', 0)}")
-                rouge_score.set(result['metrics'].get('rouge', 0))
-                meteor_score_gauge.set(result['metrics'].get('meteor', 0))
+            # Log metrics for debugging
+            logger.info(f"Chat metrics: {result.get('metrics', {})}")
 
             GeminiMetrics.save_api_call(
                 prompt=message,
                 response=result["text"],
-                metrics=result["metrics"],
+                metrics=result.get("metrics", {}),
                 latency=latency,
                 status=result["status"],
                 error=result.get("error"),
@@ -98,6 +89,7 @@ class GeminiService:
             
             return {
                 "response": result["text"],
+                "metrics": result.get("metrics", {}),
                 "status": result["status"],
                 "error": result.get("error")
             }

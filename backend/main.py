@@ -352,12 +352,18 @@ async def oauth_userinfo(current_user: dict = Depends(get_current_user)):
     }
 
 @app.get("/metrics/gemini")
-async def gemini_metrics():
-    """Expose Gemini metrics to Prometheus without authentication."""
+async def gemini_metrics(credentials: HTTPBasicCredentials = Security(security)):
+    """Expose Gemini metrics to Prometheus with basic authentication."""
+    if credentials.username != "admin" or credentials.password != "admin":
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid credentials",
+            headers={"WWW-Authenticate": "Basic"},
+        )
     return Response(
         generate_latest(),
         media_type=CONTENT_TYPE_LATEST
-    ) 
+    )
 
 @app.delete("/delete/{filename}/{documentId}")
 async def delete_document(

@@ -16,9 +16,6 @@ import cv2
 import numpy as np
 import logging
 import re
-from gemini_monitoring import rouge_score, meteor_score_gauge
-from rouge import Rouge
-from nltk.translate.meteor_score import meteor_score
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 import httpx
 from prometheus_client import Counter, Gauge, Histogram
@@ -156,17 +153,6 @@ def generate_summary(text: str, user_id: str) -> Tuple[bool, str]:
         latency = time.time() - start_time
         api_latency_seconds.observe(latency)
         
-        # Update ROUGE and METEOR scores
-        try:
-            rouge_scorer = Rouge()
-            rouge_scores = rouge_scorer.get_scores(response.text, text)[0]
-            rouge_l = rouge_scores['rouge-l']['f']
-            meteor = meteor_score([text.split()], response.text.split())
-            
-            rouge_score.set(rouge_l)
-            meteor_score_gauge.set(meteor)
-        except Exception as e:
-            logger.error(f"Error calculating metrics: {e}")
         
         return True, response.text
     except Exception as e:
@@ -314,7 +300,6 @@ def generate_chat_response(query: str, context_chunks: List[str], user_id: str) 
         api_errors_total.inc()
         raise e
 
-# Prometheus metrics
 api_calls_total = Counter('api_calls_total', 'Total number of API calls')
 api_errors_total = Counter('api_errors_total', 'Total number of API errors')
 api_latency_seconds = Histogram('api_latency_seconds', 'API latency in seconds') 
