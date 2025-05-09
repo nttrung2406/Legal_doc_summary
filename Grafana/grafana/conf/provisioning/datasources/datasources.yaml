@@ -8,11 +8,15 @@ datasources:
     isDefault: true
     editable: true
     jsonData:
-      timeInterval: 5s
-      queryTimeout: 30s
-      httpMethod: GET
+      timeInterval: "5s"
+      queryTimeout: "30s"
+      httpMethod: "POST"
+      exemplarTraceIdDestinations: []
       manageAlerts: true
       alerting: true
     secureJsonData:
       basicAuthPassword: ""
+      httpHeaderValue1: ""
     basicAuth: false 
+    version: 1
+    readOnly: false

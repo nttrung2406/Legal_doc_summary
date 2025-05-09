@@ -49,6 +49,12 @@ const DocumentViewer = () => {
     fetchDocument();
   }, [filename]);
   
+  useEffect(() => {
+    if (activeTab == 0)
+    {
+      fetchSummary();
+    }
+  }, [])
   const fetchDocument = async () => {
     try {
       setLoading(true);
@@ -71,6 +77,15 @@ const DocumentViewer = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const fetchSummary = async() => {
+    try {
+      const data = await documents.getSummary(filename, documentId);
+      setSummary(data.summary);
+    } catch (err) {
+      setError('Failed to fetch summary');
+    } 
   };
 
   const handleTabChange = async (event, newValue) => {
@@ -144,8 +159,8 @@ const DocumentViewer = () => {
         <Alert severity="error">Document not found</Alert>
       </Container>
     );
-  }
 
+  }
   return (
     <Container  maxWidth={false} sx={{ mt: 6, mb: 12 }}>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={4}>
@@ -238,7 +253,7 @@ const DocumentViewer = () => {
                 <Box sx={{ 
                   display: 'flex', 
                   flexDirection: 'column', 
-                  height: 'calc(100vh - 300px)',
+                  height: '100%',
                   width: '95%', 
                   margin: '0 auto',
                   position: 'relative'
@@ -247,6 +262,7 @@ const DocumentViewer = () => {
                     flex: 1, 
                     overflow: 'auto', 
                     mb: 2,
+                    height: '100%',
                     maxHeight: 'calc(100% - 100px)',
                     paddingBottom: '20px',
                     '&::-webkit-scrollbar': {
@@ -299,12 +315,10 @@ const DocumentViewer = () => {
                   <Box sx={{ 
                     display: 'flex', 
                     gap: 2, 
-                    position: 'sticky',
-                    bottom: -444,
+                    mt: 'auto',
                     backgroundColor: 'white',
                     pt: 1,
                     pb: 1,
-                    mt: 1,
                     borderTop: '1px solid #e0e0e0'
                   }}>
                     <TextField
