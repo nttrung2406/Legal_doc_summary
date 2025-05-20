@@ -18,10 +18,10 @@ if errorlevel 1 (
 )
 
 :: Check if backend dependencies are installed
-@REM echo Installing backend dependencies...
-@REM cd backend
-@REM pip install -r requirements.txt
-@REM cd ..
+echo Installing backend dependencies...
+cd backend
+pip install -r requirements.txt
+cd ..
 
 :: Check if node_modules exists
 if not exist "frontend-react\node_modules" (
